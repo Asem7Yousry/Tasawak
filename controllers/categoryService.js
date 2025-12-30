@@ -1,6 +1,6 @@
 const Category = require("../models/categoryModel");
 const asyncHandler = require("express-async-handler");
-const ApiError = require("../utils/apiError")
+const ApiError = require("../utils/apiError");
 
 // @doc create new Category
 // @route Post /api/category
@@ -10,15 +10,17 @@ exports.createCategory = asyncHandler(async (req, res, next) => {
     const newCategory = await Category.create({
       title: req.body.title,
     });
-    res
-      .status(201)
-      .json({
-        success: true,
-        category: newCategory,
-        message: "created successfully!",
-      });
+    res.status(201).json({
+      success: true,
+      category: newCategory,
+      message: "created successfully!",
+    });
   } catch (error) {
-    return next(new ApiError(error.message, 400))
+    if (error.code === 11000) {
+      // duplicate title mongo error
+      return next(new ApiError(`title:${req.body.title} already exists`, 400));
+    }
+    return next(new ApiError(error.message, error.statusCode));
   }
 });
 
@@ -48,7 +50,9 @@ exports.getAllCategory = asyncHandler(async (req, res) => {
 exports.getSpecificCategory = asyncHandler(async (req, res, next) => {
   let specificCategory = await Category.findById(req.params.categoryID);
   if (!specificCategory) {
-    return next(new ApiError(`category ID ${req.params.categoryID} not exists`, 404))
+    return next(
+      new ApiError(`category ID ${req.params.categoryID} not exists`, 404)
+    );
   }
   res.status(200).json({ success: true, category: specificCategory });
 });
@@ -63,7 +67,9 @@ exports.updateSpecificCategory = asyncHandler(async (req, res, next) => {
     { new: true }
   );
   if (!specificCategory) {
-    return next(new ApiError(`category ID ${req.params.categoryID} not exists`, 404))
+    return next(
+      new ApiError(`category ID ${req.params.categoryID} not exists`, 404)
+    );
   }
   res.status(202).json({ success: true, category: specificCategory });
 });
@@ -74,7 +80,9 @@ exports.updateSpecificCategory = asyncHandler(async (req, res, next) => {
 exports.deleteSpecificCategory = asyncHandler(async (req, res, next) => {
   let deletedCategory = await Category.findByIdAndDelete(req.params.categoryID);
   if (!deletedCategory) {
-    return next(new ApiError(`category ID ${req.params.categoryID} not exists`, 404))
+    return next(
+      new ApiError(`category ID ${req.params.categoryID} not exists`, 404)
+    );
   }
   res.status(202).json({ success: true, message: "deleted successfully!" });
 });

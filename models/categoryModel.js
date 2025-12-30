@@ -8,6 +8,8 @@ const categorySchema = new mongoose.Schema(
       required: [true, "Title reuired"],
       minlength: [3, "Title mustn't be less than 3 letters"],
       maxlength: [15, "Title must be less than 16 letters"],
+      unique:true,
+      trim:true 
     },
     slug: {
       type: String,
@@ -18,7 +20,6 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-categorySchema.index({ title: 1 }, { unique: true });
 
 // middle ware for saving and updating category object
 categorySchema.pre("findOneAndUpdate", function () {
