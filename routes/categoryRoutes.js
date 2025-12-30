@@ -1,10 +1,19 @@
 const express = require("express");
-const router = express.Router();
 const Catserv = require("../controllers/categoryService");
+const subCatRoutes = require("../routes/subCategoryRoutes");
 const {
   getSpecificCategoryValidator,
   createCategoryValidator,
 } = require("../middlewares/validationRules/categoryValidationRoules");
+
+const router = express.Router();
+
+// @desc get all subCategories for specific category by ID
+router.use(
+  "/:categoryID/subCategories",
+  getSpecificCategoryValidator,
+  subCatRoutes
+);
 
 // @desc routes for listing all categories and creating new category
 router

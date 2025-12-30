@@ -2,9 +2,11 @@ const express = require("express");
 const ENV = require("dotenv");
 const morgan = require("morgan");
 const DbConnection = require("./config/database");
-const categoryRout = require("./routes/categoryRoutes");
 const ApiError = require("./utils/apiError");
 const errorHandellingMiddleWare = require("./middlewares/errorMiddlWare");
+// all project routes 
+const categoryRout = require("./routes/categoryRoutes");
+const subCategoryRout = require("./routes/subCategoryRoutes");
 
 ENV.config();
 
@@ -23,6 +25,7 @@ if (process.env.NODE_ENV === "development") {
 
 // project Basic routes
 app.use("/api/category", categoryRout);
+app.use("/api/subCategory", subCategoryRout);
 
 // handel error of request on unexisted route
 app.all("/*path", (req, res, next) => {
