@@ -7,10 +7,6 @@ const DbConnection = () => {
     .then((conn) =>
       console.log(`Successfully connected:${conn.connection.host}`)
     )
-    .catch((error) => {
-      console.log(`error in conncetion to MongDB:${error}`);
-      process.exit(1);
-    });
 };
 
 module.exports = DbConnection;
