@@ -7,6 +7,7 @@ const errorHandellingMiddleWare = require("./middlewares/errorMiddlWare");
 // all project routes 
 const categoryRout = require("./routes/categoryRoutes");
 const subCategoryRout = require("./routes/subCategoryRoutes");
+const brandRout = require("./routes/brandRoutes");
 
 ENV.config();
 
@@ -26,6 +27,7 @@ if (process.env.NODE_ENV === "development") {
 // project Basic routes
 app.use("/api/category", categoryRout);
 app.use("/api/subCategory", subCategoryRout);
+app.use("/api/brand", brandRout);
 
 // handel error of request on unexisted route
 app.all("/*path", (req, res, next) => {
