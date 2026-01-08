@@ -12,6 +12,7 @@ const errorHandellingMiddleWare = (error, request, response, next) => {
 
 const erroHandelDev = (error, response) => {
   response.status(error.statusCode || 500).json({
+    success:false,
     message: error.message,
     error: error,
     stack: error.stack,

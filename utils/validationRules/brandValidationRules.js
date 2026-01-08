@@ -1,5 +1,5 @@
 const { check } = require("express-validator");
-const validatorMiddleWare = require("../ValidatorMiddleWareMethod");
+const validatorMiddleWare = require("../../middlewares/ValidatorMiddleWareMethod");
 
 // middle ware rules for validation of Brand//
 
