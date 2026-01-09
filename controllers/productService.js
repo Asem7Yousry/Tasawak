@@ -1,6 +1,7 @@
 const Product = require("../models/productModel");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
+const {filterPagination} = require("../utils/filterPaginationMethod")
 
 // @doc create new Product
 // @route Post /api/Product
@@ -22,12 +23,10 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
 // @route Get /api/Product
 // @access public
 exports.getAllProducts = asyncHandler(async (req, res) => {
-  // apply pagination
-  let limit = req.query.limit || 10;
-  let page = req.query.page || 1;
-  let skip = (page - 1) * limit;
-  let allProducts = await Product.find({})
-    .sort({ createdAt: -1 })
+  [limit, page, skip, filter, sort, fields] = filterPagination(req.query);
+  // get needed product from database
+  let allProducts = await Product.find(filter, fields)
+    .sort(sort)
     .skip(skip)
     .limit(limit);
   res.status(200).json({

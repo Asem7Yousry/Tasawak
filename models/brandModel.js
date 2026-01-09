@@ -20,6 +20,8 @@ const brandSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// create text index on title
+brandSchema.index({title:'text'})
 
 // middle ware for saving and updating brand object
 brandSchema.pre("findOneAndUpdate", function () {

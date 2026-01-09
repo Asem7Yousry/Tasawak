@@ -1,6 +1,7 @@
 const Category = require("../models/categoryModel");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
+const {filterPagination} = require("../utils/filterPaginationMethod")
 
 // @doc create new Category
 // @route Post /api/category
@@ -28,12 +29,10 @@ exports.createCategory = asyncHandler(async (req, res, next) => {
 // @route Get /api/category
 // @access public
 exports.getAllCategory = asyncHandler(async (req, res) => {
-  // apply pagination
-  let limit = req.query.limit || 10;
-  let page = req.query.page || 1;
-  let skip = (page - 1) * limit;
-  let allCategories = await Category.find({})
-    .sort({ createdAt: -1 })
+  // apply pagination and filteration
+  [limit, page, skip, filter, sort, fields] = filterPagination(req.query)
+  let allCategories = await Category.find(filter, fields)
+    .sort(sort)
     .skip(skip)
     .limit(limit);
   res.status(200).json({

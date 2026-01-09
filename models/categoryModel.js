@@ -20,6 +20,8 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// create text index on title
+categorySchema.index({title:'text'})
 
 // middle ware for saving and updating category object
 categorySchema.pre("findOneAndUpdate", function () {

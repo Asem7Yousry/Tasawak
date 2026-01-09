@@ -2,14 +2,15 @@ const subCategory = require("../models/subCategoryModel");
 const Category = require("../models/categoryModel");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
+const {filterPagination} = require("../utils/filterPaginationMethod")
 
 // @doc create new subCategory with parent category id (catgoryID)
 // @route Post /api/subCategory
 // @access private
 exports.createSubCategory = asyncHandler(async (req, res, next) => {
   try {
-    // nested route 
-    let categoryID = req.params.categoryID || req.body.categoryID
+    // nested route
+    let categoryID = req.params.categoryID || req.body.categoryID;
     let category = await Category.findById(categoryID);
     let newSubCategory = await subCategory.create({
       title: req.body.title,
@@ -21,7 +22,6 @@ exports.createSubCategory = asyncHandler(async (req, res, next) => {
     if (error.code === 11000) {
       return next(new ApiError(`title:${req.body.title} already exists`, 400));
     }
-    console.log(error);
     return next(new ApiError(error.message, error.statusCode));
   }
 });
@@ -30,17 +30,14 @@ exports.createSubCategory = asyncHandler(async (req, res, next) => {
 // @route Get /api/subCategory
 // @access public
 exports.getAllSubCategory = asyncHandler(async (req, res) => {
-  // check filteration if list subCategories or for specific category
-  let filter = req.params.categoryID
-    ? { categoryID: req.params.categoryID }
-    : {};
-  // apply pagination
-  let limit = req.query.limit || 10;
-  let page = req.query.page || 1;
-  let skip = (page - 1) * limit;
+  // apply pagination & filteration and sorting
+  [limit, page, skip, filter, sort, fields] = filterPagination(req.query);
+  if(req.params.categoryID){
+    filter['categoryID']= req.params.categoryID
+  }  
   let allSubCategories = await subCategory
-    .find(filter)
-    .sort({ createdAt: -1 })
+    .find(filter, fields)
+    .sort(sort)
     .skip(skip)
     .limit(limit);
   res.status(200).json({

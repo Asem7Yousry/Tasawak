@@ -33,10 +33,10 @@ const productSchema = new mongoose.Schema(
         required: true,
       },
     ],
-    brandID:{
-      type:mongoose.Schema.ObjectId,
-      ref:"Brand",
-      required:true
+    brandID: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Brand",
+      required: true,
     },
     colors: {
       type: [String],
@@ -68,8 +68,15 @@ const productSchema = new mongoose.Schema(
     images: [String],
     imageCover: String,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
+
+// create text index on name , description
+productSchema.index({
+  name: "text",
+  description: "text",
+  categoryName: "text",
+});
 
 productSchema.pre("save", function () {
   this.slug = slugify(this.name);
