@@ -80,7 +80,6 @@ productSchema.index({
 
 productSchema.pre("save", function () {
   this.slug = slugify(this.name);
-  //   this.category.categoryName = await Category.findOne({_id:this.category.categoryID}).name
 });
 
 productSchema.pre("findOneAndUpdate", function () {

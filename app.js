@@ -1,22 +1,21 @@
 const express = require("express");
 const ENV = require("dotenv");
 const morgan = require("morgan");
-const DbConnection = require("./config/database");
+const cookieParser = require("cookie-parser");
 const ApiError = require("./utils/apiError");
 const errorHandellingMiddleWare = require("./middlewares/errorMiddlWare");
 const allRoutes = require("./config/mainRotes")
+
 
 ENV.config();
 
 // some constants
 const app = express();
 
-// connect to database (MongoDB)
-DbConnection();
-
 // middleware configuration
 app.use(express.json());
 app.use(express.urlencoded());
+app.use(cookieParser());
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
@@ -35,16 +34,4 @@ app.all("/*path", (req, res, next) => {
 // error handlling middleware for express
 app.use(errorHandellingMiddleWare);
 
-// running server
-const SERVER = app.listen(process.env.PORT || 8000, (_) =>
-  console.log(`server running...`)
-);
-
-// rejection error handelling
-process.on("unhandledRejection", (error) => {
-  console.log(`unhandled Rejection Error: ${error}`);
-  SERVER.close((_) => {
-    console.log("Shutting down...");
-    process.exit(1);
-  });
-});
+module.exports = app
