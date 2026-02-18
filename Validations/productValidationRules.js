@@ -1,8 +1,8 @@
 const { check } = require("express-validator");
-const validatorMiddleWare = require("../../middlewares/ValidatorMiddleWareMethod");
-const Category = require("../../models/categoryModel");
-const subCategory = require("../../models/subCategoryModel");
-const ApiError = require("../apiError");
+const validatorMiddleWare = require("../middlewares/ValidatorMiddleWareMethod");
+const Category = require("../models/categoryModel");
+const subCategory = require("../models/subCategoryModel");
+const ApiError = require("../utils/apiError");
 
 // middle ware rules for validation of products//
 

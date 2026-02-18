@@ -1,7 +1,7 @@
 const express = require("express");
 const AdminServices = require("../controllers/adminService");
 const userServ = require("../controllers/user.contoller");
-const userRules = require("../utils/validationRules/userValidationRules");
+const userRules = require("../Validations/userValidationRules");
 const {
   verifyAuthentication,
   isAdmin,

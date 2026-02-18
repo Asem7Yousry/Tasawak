@@ -1,0 +1,32 @@
+const express = require("express");
+const cartController = require("../controllers/cartControler");
+const cartRules = require("../Validations/cartValidationRules");
+const { verifyAuthentication } = require("../utils/AuthMethods");
+
+const router = express.Router();
+
+// apply authentication for each request
+router.use(verifyAuthentication);
+
+// @desc routes for get or clear cart
+router
+  .route("/my-cart")
+  .get(cartController.getMyCart)
+  .delete(cartController.clearCart);
+
+// @desc routes for add product to cart
+router
+  .route("/add-to-cart")
+  .put(cartRules.addCartItemOrQuantity, cartController.addToCart);
+
+// @desc routes for remove product from cart
+router
+  .route("/remove-from-cart")
+  .delete(cartRules.removeCartItemVal, cartController.removeCartItem);
+
+// @desc routes for remove product from cart
+router
+  .route("/change-Quantity")
+  .put(cartRules.addCartItemOrQuantity, cartController.changeQuantity);
+
+module.exports = router;

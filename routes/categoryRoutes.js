@@ -4,7 +4,7 @@ const subCatRoutes = require("../routes/subCategoryRoutes");
 const {
   getSpecificCategoryValidator,
   createCategoryValidator,
-} = require("../utils/validationRules/categoryValidationRoules");
+} = require("../Validations/categoryValidationRoules");
 
 const router = express.Router();
 

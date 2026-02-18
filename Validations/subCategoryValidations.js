@@ -1,5 +1,5 @@
 const { check } = require("express-validator");
-const validatorMiddleWare = require("../../middlewares/ValidatorMiddleWareMethod");
+const validatorMiddleWare = require("../middlewares/ValidatorMiddleWareMethod");
 
 // validation rules for subCategories routes //
 

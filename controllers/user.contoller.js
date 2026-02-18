@@ -14,7 +14,7 @@ const { verifyRefreshToken } = require("../utils/AuthMethods");
 exports.signUp = asyncHandler(async (req, res, next) => {
   try {
     const newUser = await User.create(req.body);
-    let token = jwtCreator(newUser);
+    let token = await jwtCreator(newUser);
     res.status(201).json({
       success: true,
       message: "signed up successfully!",
@@ -48,7 +48,7 @@ exports.logIn = asyncHandler(async (req, res, next) => {
   if (!isCorrectPassword) {
     return next(new ApiError(`wrong password`));
   }
-  let token = jwtCreator(user);
+  let token = await jwtCreator(user);
   res.status(200).json({
     success: true,
     message: "loged in successfully!",
@@ -179,7 +179,7 @@ exports.resetPassword = async (req, res, next) => {
   const userID = req.headers.userid;
   let user = await userService.resetPasswordService(userID, password);
   user.password = undefined;
-  let token = jwtCreator(user);
+  let token = await jwtCreator(user);
   res.status(202).json({
     status: "success",
     message: "password resetted successfully!",

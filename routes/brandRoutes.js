@@ -1,6 +1,6 @@
 const express = require("express");
 const BrandServ = require("../controllers/brandService");
-const brandValidation = require("../utils/validationRules/brandValidationRules");
+const brandValidation = require("../Validations/brandValidationRules");
 
 const router = express.Router();
 

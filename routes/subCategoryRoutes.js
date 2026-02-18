@@ -1,6 +1,6 @@
 const express = require("express");
 const subCatControlers = require("../controllers/subCategoryService");
-const subCatRules = require("../utils/validationRules/subCategoryValidations");
+const subCatRules = require("../Validations/subCategoryValidations");
 
 const router = express.Router({ mergeParams: true });
 

@@ -1,16 +1,16 @@
 const { check } = require("express-validator");
-const validatorMiddleWare = require("../../middlewares/ValidatorMiddleWareMethod");
+const validatorMiddleWare = require("../middlewares/ValidatorMiddleWareMethod");
 
-// middle ware rules for validation of Category//
+// middle ware rules for validation of Brand//
 
-exports.getSpecificCategoryValidator = [
-  check("categoryID")
+exports.getSpecificBrandValidator = [
+  check("brandID")
     .isMongoId()
-    .withMessage("not Valid Mongo Id for category"),
+    .withMessage("not Valid Mongo Id for brand"),
   validatorMiddleWare,
 ];
 
-exports.createCategoryValidator = [
+exports.createBrandValidator = [
   check("title")
     .notEmpty()
     .withMessage("title is required")

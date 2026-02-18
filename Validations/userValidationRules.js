@@ -1,5 +1,5 @@
 const userFields = require("./userFieldsValidation");
-const validatorMiddleWare = require("../../middlewares/ValidatorMiddleWareMethod");
+const validatorMiddleWare = require("../middlewares/ValidatorMiddleWareMethod");
 
 exports.signUpValidator = [
   userFields.emailValidation,

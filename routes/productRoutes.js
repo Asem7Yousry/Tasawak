@@ -1,6 +1,6 @@
 const express = require("express");
 const ProdServ = require("../controllers/productService");
-const prodRules = require("../utils/validationRules/productValidationRules");
+const prodRules = require("../Validations/productValidationRules");
 
 const router = express.Router();
 

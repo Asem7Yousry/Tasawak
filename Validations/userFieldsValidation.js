@@ -1,5 +1,5 @@
 const { check } = require("express-validator");
-const ApiError = require("../apiError");
+const ApiError = require("../utils/apiError");
 
 // validation of each User's field//
 
