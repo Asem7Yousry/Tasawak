@@ -1,5 +1,4 @@
 const asyncHandler = require("express-async-handler");
-const Product = require("../models/productModel");
 const ApiError = require("../utils/apiError");
 const cartServices = require("../services/cart.service");
 
@@ -41,7 +40,7 @@ exports.addToCart = asyncHandler(async (req, res, next) => {
 // @access private
 exports.removeCartItem = asyncHandler(async (req, res, next) => {
   let cart = await cartServices.removeCartItem(
-    req.user.cartId,
+    req.user._id,
     req.body.productId,
   );
   res
@@ -69,9 +68,10 @@ exports.clearCart = asyncHandler(async (req, res, next) => {
 // @access private
 exports.changeQuantity = asyncHandler(async (req, res, next) => {
   let changedCart = await cartServices.changeCartItemQuantity(
-    req.user.cartId,
+    req.user._id,
     req.body.productId,
     req.body.quantity,
+    req.product.price,
   );
   if (!changedCart) {
     return next(new ApiError(`cart ID ${req.user.cartId} not exists`, 404));

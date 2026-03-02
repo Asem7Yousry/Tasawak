@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
-const redisClient = require("../config/redis.config");
+const redis = require("../config/redis.config");
 
 const productSchema = new mongoose.Schema(
   {
@@ -96,13 +96,14 @@ productSchema.post("findOneAndUpdate", async function (doc) {
   // handle price change → update Redis
   if (update?.$set.price || update?.$set.quantity) {
     // delete cached product
-    await redisClient.del(`product_${doc._id}`);
-    // enhance the needed data from product to be cached 
-    let { _id, name, quantity, price, ...rest } = doc;
-    await redisClient.setEx(
+    await redis.del(`product_${doc._id}`);
+    // enhance the needed data from product to be cached
+    let { _id, name, quantity, price } = doc;
+    await redis.set(
       `product_${doc._id}`,
-      Number(process.env.Redis_Expriation_Time),
       JSON.stringify({ _id, name, quantity, price }),
+      'EX',
+      Number(process.env.Redis_Expriation_Time),
     );
   }
 });

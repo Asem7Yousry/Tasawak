@@ -1,8 +1,24 @@
 const Cart = require("../models/cartModel");
-const Product = require("../models/productModel");
 const ApiError = require("../utils/apiError");
-const redisClient = require("../config/redis.config");
+const redis = require("../config/redis.config");
 const { getOrCreate } = require("../utils/jwtMethod");
+const { cartQueue } = require("../utils/queues");
+const { cacheRedis } = require("../utils/redis.methods");
+
+async function saveCartJob(userId) {
+  /* function to add/override a background job
+  to save cart in DB before expiration in redis cache*/
+  await cartQueue.add(
+    "save-cart",
+    { userId },
+    {
+      jobId: `cart-save-${userId}`,
+      delay: (Number(process.env.Redis_Expriation_Time) - 4 * 60) * 1000,
+      removeOnComplete: true,
+      removeOnFail: true,
+    },
+  );
+}
 
 // create new cart for each user
 exports.createCart = (data) => Cart.create(data);
@@ -10,18 +26,20 @@ exports.createCart = (data) => Cart.create(data);
 // get cart by userId
 exports.getCart = async (userId) => {
   const cartKey = `cart_${userId}`;
-  let cart;
-  cart = await redisClient.get(cartKey);
-  if (!cart) {
-    cart = await getOrCreate(Cart, { userId: userId }, { userId: userId });
-    await redisClient.setEx(
-      cartKey,
-      process.env.Redis_Expriation_Time,
-      JSON.stringify(cart),
-    );
-  } else {
-    cart = JSON.parse(cart);
+  // get cart from redis if it was cached
+  let cart = await redis.get(cartKey);
+  if (cart) {
+    return JSON.parse(cart);
   }
+  // if not get it from mongooDB
+  cart = await getOrCreate(Cart, { userId }, { userId });
+  // save cart in Redis
+  let { items, totalPrice } = cart;
+  await cacheRedis(
+    cartKey,
+    { items, totalPrice },
+    Number(process.env.Redis_Expriation_Time),
+  );
   return cart;
 };
 
@@ -34,125 +52,120 @@ exports.addCartItem = async (
   productName,
   productQuantity,
 ) => {
-  let mycart;
-  const cartKey = `cart_${userId}`;
-  // get cart from cache or database
-  const cachedCart = await redisClient.get(cartKey);
-  if (cachedCart) {
-    mycart = JSON.parse(cachedCart);
-  } else {
-    mycart = await getOrCreate(Cart, { userId: userId }, { userId: userId });
-  }
-  // check if product already exists or not
-  const item = mycart.items.find(
-    (i) => i.productId.toString() === productId.toString(),
-  );
-  // if exists append on current product quantity
+  // get cart
+  let mycart = await this.getCart(userId);
+  // check if product already exists in cart or not
+  const key = productId.toString();
+  const item = mycart.items[key];
+
   if (item) {
-    let newQuantity = Number(item.quantity) + Number(quantity);
+    const newQuantity = Number(item.quantity) + Number(quantity);
     if (newQuantity > productQuantity) {
-      throw new ApiError(`you can't order more than ${productQuantity} `, 400);
+      throw new ApiError(`You can't order more than ${productQuantity}`, 400);
     }
+
     mycart.totalPrice -= item.piecePrice * item.quantity;
     mycart.totalPrice += productPrice * newQuantity;
+
     item.quantity = newQuantity;
     item.piecePrice = productPrice;
   } else {
     quantity = Number(quantity);
-    mycart.items.push({
-      productId,
+    mycart.items[key] = {
       quantity,
       productName,
       piecePrice: productPrice,
-    });
+    };
+
     mycart.totalPrice += productPrice * quantity;
   }
-  // save changes in redis cache
-  await redisClient.setEx(
-    cartKey,
+  // save in Redis
+  let { items, totalPrice } = mycart;
+  await cacheRedis(
+    `cart_${userId}`,
+    { items, totalPrice },
     Number(process.env.Redis_Expriation_Time),
-    JSON.stringify(mycart),
   );
+  // create job to save cart before expiration
+  await saveCartJob(userId);
   return mycart;
 };
-
 // delete product from cart
-exports.removeCartItem = async (cartId, productId) => {
-  let cart = await Cart.findOne({
-    _id: cartId,
-    items: { $elemMatch: { productId: productId } },
-  });
-  if (cart) {
-    // Find the item inside the array
-    let item = cart.items.find(
-      (i) => i.productId.toString() === productId.toString(),
-    );
-    let quantity = item.quantity;
-    let productPrice = item.piecePrice;
-    return Cart.findByIdAndUpdate(
-      cartId,
-      {
-        $pull: {
-          items: {
-            productId,
-          },
-        },
-        $inc: {
-          totalPrice: productPrice * -quantity,
-        },
-      },
-      { new: true },
-    );
-  } else {
+exports.removeCartItem = async (userId, productId) => {
+  // get chached cart, if not then from DB
+  let cart = await this.getCart(userId);
+  // Find the item inside the array
+  let item = cart.items[productId.toString()];
+  if (!item) {
     throw new ApiError(`product with ID:${productId} not exists in cart`, 404);
   }
+  let quantity = item.quantity;
+  let productPrice = item.piecePrice;
+  delete cart.items[productId];
+  cart.totalPrice -= productPrice * quantity;
+  // save changes in redis cache
+  let { items, totalPrice } = cart;
+  await cacheRedis(
+    `cart_${userId}`,
+    { items, totalPrice },
+    Number(process.env.Redis_Expriation_Time),
+  );
+  // create job to save cart before expiration
+  await saveCartJob(userId);
+
+  return cart;
 };
 
 // update product quantity in cart (increment or decrement 1)
-exports.changeCartItemQuantity = async (cartId, productId, newQuantity) => {
-  const cart = await Cart.findOne({
-    _id: cartId,
-    "items.productId": productId,
-  });
-  if (!cart) {
+exports.changeCartItemQuantity = async (
+  userId,
+  productId,
+  newQuantity,
+  productPrice,
+) => {
+  const cart = await this.getCart(userId);
+  // Find the item inside the cart items
+  let item = cart.items[productId.toString()];
+  if (!item) {
     throw new ApiError(`product with ID:${productId} not exists in cart`, 404);
   }
-  const item = cart.items.find(
-    (i) => i.productId.toString() === productId.toString(),
+  // check if there is an increase or decrease in cart product
+  if (productPrice != item.piecePrice) {
+    cart.totalPrice -= item.piecePrice * item.quantity;
+    cart.totalPrice += productPrice * newQuantity;
+    item.piecePrice = productPrice;
+  } else {
+    let changeInQuantity = newQuantity - item.quantity;
+    cart.totalPrice += productPrice * changeInQuantity;
+  }
+  // set new quantity
+  item.quantity = Number(newQuantity);
+  // save in Redis
+  let { items, totalPrice } = cart;
+  await cacheRedis(
+    `cart_${userId}`,
+    { items, totalPrice },
+    Number(process.env.Redis_Expriation_Time),
   );
-
-  let changeInQuantity = newQuantity - item.quantity;
-
-  const updatedCart = await Cart.findOneAndUpdate(
-    {
-      _id: cartId,
-      "items.productId": productId,
-    },
-    {
-      $inc: {
-        "items.$.quantity": changeInQuantity,
-        totalPrice: item.piecePrice * changeInQuantity,
-      },
-    },
-    { new: true },
-  );
-
-  return updatedCart;
+  // create job to save cart before expiration
+  await saveCartJob(userId);
+  return cart;
 };
 
 // clear cart in cache and mongoDB
 exports.clearCart = async (userId) => {
-  await redisClient.del(`cart_${userId}`);
+  await redis.del(`cart_${userId}`);
   return Cart.findOneAndUpdate(
     { userId: userId },
     {
-      $set: { items: [], totalPrice: 0 },
+      $set: { items: {}, totalPrice: 0 },
     },
     { new: true },
   );
 };
 
 // delete cart
-exports.deleteCart = (cartId) => {
-  return Cart.findByIdAndDelete(cartId);
+exports.deleteCart = async (userId) => {
+  await redis.del(`cart_${userId}`);
+  return Cart.findOneAndDelete({ userId: userId });
 };

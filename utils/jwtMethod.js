@@ -1,5 +1,4 @@
 const JWT = require("jsonwebtoken");
-const Cart = require("../models/cartModel");
 
 exports.jwtCreator = async (user) => {
   let { _id, fullName, email, phoneNumber, role, panned } = user;
@@ -27,6 +26,6 @@ exports.getOrCreate = async (Model, query, data = {}) => {
   if (doc) return doc;
 
   const createdDoc = await Model.create(data);
-  return createdDoc.toObject();
+  return createdDoc;
 };
 

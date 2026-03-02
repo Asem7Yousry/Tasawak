@@ -3,6 +3,8 @@ const app = require("./app");
 
 DbConnection()
   .then(() => {
+    // run all workers
+    require("./utils/workers");
     // // running server
     const SERVER = app.listen(process.env.PORT || 8000, (_) =>
       console.log(`server running...`),

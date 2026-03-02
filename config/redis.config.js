@@ -1,21 +1,20 @@
-const Redis = require("redis");
+require("dotenv").config();
+const IORedis = require("ioredis");
 
-const redisClient = Redis.createClient({
-  url: "redis://127.0.0.1:6379", 
+const redis = new IORedis({
+  host: process.env.REDIS_HOST,
+  port: Number(process.env.REDIS_PORT),
+  password: process.env.REDIS_PASSWORD,
+  maxRetriesPerRequest: null,
 });
 
-// event emitters for redis //
-redisClient.on("connect", () => {
-  console.log("Redis Connected Successfully!");
+redis.on("connect", () => {
+  console.log("Redis Cloud connected");
 });
 
-redisClient.on("error", (error) => {
-  console.log(`Redis Error:${error}`);
-  console.error(error);
+redis.on("error", (err) => {
+  console.error("Redis error:", err);
 });
 
-(async () => await redisClient.connect())();
+module.exports = redis;
 
-module.exports = redisClient;
-
-// redis://username:password@host:port
