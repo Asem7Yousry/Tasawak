@@ -61,18 +61,28 @@ exports.getSpecificBrand = asyncHandler(async (req, res, next) => {
 // @route put /api/brand/:brandID
 // @access private
 exports.updateSpecificBrand = asyncHandler(async (req, res, next) => {
-  let specificBrand = await brandServices.updateBrandById(
-    req.params.brandID,
-    req.body,
-  );
-  if (!specificBrand) {
-    return next(new ApiError(`brand ID ${req.params.brandID} not exists`, 404));
+  try {
+    let specificBrand = await brandServices.updateBrandById(
+      req.params.brandID,
+      req.body,
+    );
+    if (!specificBrand) {
+      return next(
+        new ApiError(`brand ID ${req.params.brandID} not exists`, 404),
+      );
+    }
+    res.status(202).json({
+      success: true,
+      message: "updated brand successfully!",
+      brand: specificBrand,
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      // duplicate title mongo error
+      return next(new ApiError(`title:${req.body.title} already exists`, 409));
+    }
+    return next(new ApiError(error.message, error.statusCode));
   }
-  res.status(202).json({
-    success: true,
-    message: "updated brand successfully!",
-    brand: specificBrand,
-  });
 });
 
 // @doc delete specific brand by ID

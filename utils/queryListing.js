@@ -24,13 +24,23 @@ exports.QueryListing = class QueryListing {
 
     // Advanced filtering (gte, gt, lte, lt)
     let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    queryStr = queryStr.replace(
+      /\b(gte|gt|lte|lt|in)\b/g,
+      (match) => `$${match}`,
+    );
+
+    // fix '$in' , set value to array
+    Object.values(queryStr).forEach((element) => {
+      if (typeof element === "object" && "$in" == Object.keys(element)) {
+        element["$in"] = element["$in"].split(",");
+      }
+    });
 
     let filter = JSON.parse(queryStr);
     if (this.requestQeury.search) {
       filter["$text"] = { $search: this.requestQeury.search };
     }
-
+    console.log("filter", filter);
     // Apply filter to mongoose query
     this.dbQuery = this.model.find(filter);
 
