@@ -17,7 +17,7 @@ exports.createCategory = asyncHandler(async (req, res, next) => {
   } catch (error) {
     if (error.code === 11000) {
       // duplicate title mongo error
-      return next(new ApiError(`title:${req.body.title} already exists`, 400));
+      return next(new ApiError(`title:${req.body.title} already exists`, 409));
     }
     return next(new ApiError(error.message, error.statusCode));
   }

@@ -1,6 +1,6 @@
 const express = require("express");
 const Catserv = require("../controllers/category.controller");
-const subCatRoutes = require("../routes/subCategoryRoutes");
+const subCatRoutes = require("../routes/subCategory.Routes");
 const {
   getSpecificCategoryValidator,
   createCategoryValidator,
