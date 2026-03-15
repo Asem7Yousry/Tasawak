@@ -6,9 +6,7 @@ exports.createBrand = (title) => Brand.create({ title });
 
 // list all Brands
 exports.listBrands = (query) => {
-  const apiQuery = new QueryListing(Brand, query);
-  apiQuery.apply();
-  return apiQuery.dbQuery;
+  return QueryListing(Brand, query);
 };
 
 // get specific Brand

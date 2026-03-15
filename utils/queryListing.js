@@ -1,88 +1,46 @@
-exports.QueryListing = class QueryListing {
-  /* class for listing documents 
-  and handel all its filter, pagination,
-  sort, projection and search */
-  constructor(model, requestQeury) {
-    this.model = model;
-    this.requestQeury = requestQeury;
-    this.dbQuery = null;
-  }
+exports.QueryListing = (model, query) => {
+  // declare parameters
+  let filterOperators = ["gte", "gt", "lte", "lt", "in"];
+  let queryOperators = ["sort", "project", "populate"];
+  let filter = {};
+  let constData = { sort: { _id: -1 } };
 
-  filter() {
-    // Copy request query
-    const queryObj = { ...this.requestQeury };
-
-    // Remove non-filter fields
-    const excludedFields = [
-      "pageNumber",
-      "pageSize",
-      "sort",
-      "project",
-      "populate",
-    ];
-    excludedFields.forEach((field) => delete queryObj[field]);
-
-    // Advanced filtering (gte, gt, lte, lt)
-    let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(
-      /\b(gte|gt|lte|lt|in)\b/g,
-      (match) => `$${match}`,
-    );
-
-    // fix '$in' , set value to array
-    Object.values(queryStr).forEach((element) => {
-      if (typeof element === "object" && "$in" == Object.keys(element)) {
-        element["$in"] = element["$in"].split(",");
-      }
-    });
-
-    let filter = JSON.parse(queryStr);
-    if (this.requestQeury.search) {
-      filter["$text"] = { $search: this.requestQeury.search };
+  // map on query object to get extract attribute
+  Object.entries(query).map(([key, value]) => {
+    if (key === "pageNumber" || key === "pageSize") {
+      constData[key] = value;
+    } else if (queryOperators.includes(key)) {
+      constData[key] = value.split(",").join(" ");
+    } else if (typeof value === "object") {
+      Object.keys(value).forEach((op) => {
+        if (filterOperators.includes(op)) {
+          if (op === "in") {
+            value[op] = value[op].split(",");
+          }
+          value[`$${op}`] = value[op];
+          delete value[op];
+          filter[key] = value;
+        }
+      });
+    } else {
+      filter[key] = value;
     }
-    console.log("filter", filter);
-    // Apply filter to mongoose query
-    this.dbQuery = this.model.find(filter);
+  });
 
-    return this;
-  }
+  // enhance pagination parameters
+  const pageNumber = Number(constData.pageNumber) || 1;
+  const pageSize = Number(constData.pageSize) || 10;
+  let skip = 0;
+  if (pageNumber !== 1) skip = (pageNumber - 1) * pageSize;
+  
+  // final query on model
+  const listQuery = model
+    .find(filter)
+    .skip(skip)
+    .limit(pageSize)
+    .sort(constData.sort)
+    .select(constData.project)
+    .populate(constData.populate);
 
-  paginate(pageNumber = 1, pageSize = 10) {
-    pageNumber = Number(this.requestQeury.pageNumber) || pageNumber;
-    pageSize = Number(this.requestQeury.pageSize) || pageSize;
-    let skip = 0;
-    if (pageNumber !== 1) skip = (pageNumber - 1) * pageSize;
-    this.dbQuery.skip(skip).limit(pageSize).sort({ _id: -1 });
-    return this;
-  }
-  sort() {
-    if (this.requestQeury.sort) {
-      const sortBy = this.requestQeury.sort.split(",").join(" ");
-      this.dbQuery.sort(sortBy);
-    }
-    return this;
-  }
-  projection() {
-    if (this.requestQeury.project) {
-      const projectionStr = this.requestQeury.project.split(",").join(" ");
-      console.log(projectionStr);
-      this.dbQuery.select(projectionStr);
-    }
-    return this;
-  }
-  populate() {
-    if (this.requestQeury.populate) {
-      const populateOptions = this.requestQeury.populate.split(",").join(" ");
-
-      this.dbQuery.populate(populateOptions);
-    }
-    return this;
-  }
-  apply() {
-    this.filter();
-    this.paginate();
-    this.sort();
-    this.projection();
-    this.populate();
-  }
+  return listQuery;
 };

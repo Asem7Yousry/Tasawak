@@ -20,9 +20,7 @@ exports.createSubCategory = async (req) => {
 
 // list all subCategories
 exports.listsubCategories = (query) => {
-  const apiQuery = new QueryListing(subCategory, query);
-  apiQuery.apply();
-  return apiQuery.dbQuery;
+  return QueryListing(subCategory, query);
 };
 
 // get specific subCategory

@@ -6,10 +6,7 @@ exports.createCategory = (title) => Category.create({ title });
 
 // list all categories
 exports.listCategories = (query) => {
-  console.log("query:", query);
-  const apiQuery = new QueryListing(Category, query);
-  apiQuery.apply();
-  return apiQuery.dbQuery;
+  return QueryListing(Category, query);
 };
 
 // get specific category

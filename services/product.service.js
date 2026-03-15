@@ -6,10 +6,7 @@ exports.createProduct = (data) => Product.create(data);
 
 // list all Products
 exports.listProducts = (query) => {
-    
-  const apiQuery = new QueryListing(Product, query);
-  apiQuery.apply();
-  return apiQuery.dbQuery;
+  return QueryListing(Product, query);
 };
 
 // get specific Product
