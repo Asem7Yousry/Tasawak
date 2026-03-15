@@ -2,19 +2,19 @@ const Product = require("../models/productModel");
 const { QueryListing } = require("../utils/queryListing");
 
 // create Product
-exports.createProduct = (data) => Product.create(data);
+exports.create = (req) => Product.create(req.body);
 
 // list all Products
-exports.listProducts = (query) => {
-  return QueryListing(Product, query);
+exports.list = (req) => {
+  return QueryListing(Product, req.query);
 };
 
 // get specific Product
-exports.getProductById = (id) => Product.findById(id);
+exports.getById = (id) => Product.findById(id);
 
-exports.updateProductById = (id, updates) =>
+exports.updateById = (id, updates) =>
   Product.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
 
-exports.deleteAllProducts = () => Product.deleteMany({});
+exports.deleteAll = () => Product.deleteMany({});
 
-exports.deleteProductById = (id) => Product.findByIdAndDelete(id);
+exports.deleteById = (id) => Product.findByIdAndDelete(id);

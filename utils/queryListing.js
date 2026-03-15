@@ -1,46 +1,68 @@
 exports.QueryListing = (model, query) => {
-  // declare parameters
-  let filterOperators = ["gte", "gt", "lte", "lt", "in"];
-  let queryOperators = ["sort", "project", "populate"];
-  let filter = {};
-  let constData = { sort: { _id: -1 } };
+  const filterOperators = new Set(["gte", "gt", "lte", "lt", "in"]);
+  const queryOperators = new Set(["sort", "project", "populate"]);
 
-  // map on query object to get extract attribute
-  Object.entries(query).map(([key, value]) => {
+  const filter = {};
+  const options = {
+    sort: { _id: -1 },
+    pageNumber: 1,
+    pageSize: 10
+  };
+
+  Object.entries(query).forEach(([key, value]) => {
+
+    // Pagination
     if (key === "pageNumber" || key === "pageSize") {
-      constData[key] = value;
-    } else if (queryOperators.includes(key)) {
-      constData[key] = value.split(",").join(" ");
-    } else if (typeof value === "object") {
-      Object.keys(value).forEach((op) => {
-        if (filterOperators.includes(op)) {
-          if (op === "in") {
-            value[op] = value[op].split(",");
-          }
-          value[`$${op}`] = value[op];
-          delete value[op];
-          filter[key] = value;
+      options[key] = Number(value);
+      return;
+    }
+
+    // Text Search
+    if (key === "search") {
+      filter.$text = { $search: value };
+      return;
+    }
+
+    // Query Operators (sort, projection, populate)
+    if (queryOperators.has(key)) {
+      options[key] = value.split(",").join(" ");
+      return;
+    }
+
+    // Advanced filtering
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const operatorFilter = {};
+
+      Object.entries(value).forEach(([op, val]) => {
+        if (filterOperators.has(op)) {
+          operatorFilter[`$${op}`] =
+            op === "in" ? val.split(",") : val;
         }
       });
-    } else {
-      filter[key] = value;
+
+      if (Object.keys(operatorFilter).length) {
+        filter[key] = operatorFilter;
+      }
+
+      return;
     }
+
+    // Normal filter
+    filter[key] = value;
   });
 
-  // enhance pagination parameters
-  const pageNumber = Number(constData.pageNumber) || 1;
-  const pageSize = Number(constData.pageSize) || 10;
-  let skip = 0;
-  if (pageNumber !== 1) skip = (pageNumber - 1) * pageSize;
-  
-  // final query on model
-  const listQuery = model
+  // Pagination calculation
+  const skip = (options.pageNumber - 1) * options.pageSize;
+
+  // Build mongoose query
+  let dbQuery = model
     .find(filter)
     .skip(skip)
-    .limit(pageSize)
-    .sort(constData.sort)
-    .select(constData.project)
-    .populate(constData.populate);
+    .limit(options.pageSize)
+    .sort(options.sort);
 
-  return listQuery;
+  if (options.project) dbQuery = dbQuery.select(options.project);
+  if (options.populate) dbQuery = dbQuery.populate(options.populate);
+  
+  return dbQuery;
 };

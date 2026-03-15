@@ -2,19 +2,19 @@ const Brand = require("../models/brandModel");
 const { QueryListing } = require("../utils/queryListing");
 
 // create Brand
-exports.createBrand = (title) => Brand.create({ title });
+exports.create = (req) => Brand.create(req.body);
 
 // list all Brands
-exports.listBrands = (query) => {
-  return QueryListing(Brand, query);
+exports.list = (req) => {
+  return QueryListing(Brand, req.query);
 };
 
 // get specific Brand
-exports.getBrandById = (id) => Brand.findById(id);
+exports.getById = (id) => Brand.findById(id);
 
-exports.updateBrandById = (id, updates) =>
+exports.updateById = (id, updates) =>
   Brand.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
 
-exports.deleteAllBrands = () => Brand.deleteMany({});
+exports.deleteAll = () => Brand.deleteMany({});
 
-exports.deleteBrandById = (id) => Brand.findByIdAndDelete(id);
+exports.deleteById = (id) => Brand.findByIdAndDelete(id);

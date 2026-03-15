@@ -2,19 +2,19 @@ const Category = require("../models/categoryModel");
 const { QueryListing } = require("../utils/queryListing");
 
 // create Category
-exports.createCategory = (title) => Category.create({ title });
+exports.create = (req) => Category.create(req.body);
 
 // list all categories
-exports.listCategories = (query) => {
-  return QueryListing(Category, query);
+exports.list = (req) => {
+  return QueryListing(Category, req.query);
 };
 
 // get specific category
-exports.getCategoryById = (id) => Category.findById(id);
+exports.getById = (id) => Category.findById(id);
 
-exports.updateCategoryById = (id, updates) =>
+exports.updateById = (id, updates) =>
   Category.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
 
-exports.deleteAllCategorys = () => Category.deleteMany({});
+exports.deleteAll = () => Category.deleteMany({});
 
-exports.deleteCategoryById = (id) => Category.findByIdAndDelete(id);
+exports.deleteById = (id) => Category.findByIdAndDelete(id);
