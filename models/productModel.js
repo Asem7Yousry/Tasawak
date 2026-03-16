@@ -94,7 +94,7 @@ productSchema.pre("findOneAndUpdate", async function () {
 productSchema.post("findOneAndUpdate", async function (doc) {
   const update = this.getUpdate();
   // handle price change → update Redis
-  if (update?.$set.price || update?.$set.quantity) {
+  if ((update?.$set.price || update?.$set.quantity) && doc) {
     // delete cached product
     await redis.del(`product_${doc._id}`);
     // enhance the needed data from product to be cached
@@ -102,7 +102,7 @@ productSchema.post("findOneAndUpdate", async function (doc) {
     await redis.set(
       `product_${doc._id}`,
       JSON.stringify({ _id, name, quantity, price }),
-      'EX',
+      "EX",
       Number(process.env.Redis_Expriation_Time),
     );
   }

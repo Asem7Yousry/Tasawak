@@ -1,18 +1,14 @@
 const User = require("../models/userModel");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
-const { filterPagination } = require("../utils/filterPaginationMethod");
+const { QueryListing } = require("../utils/queryListing");
 
 // @doc get all Categories
 // @route Get /api/User
 // @access private
 exports.getAllUser = asyncHandler(async (req, res) => {
   // apply pagination and filteration //
-  [limit, page, skip, filter, sort, fields] = filterPagination(req.query);
-  let allUsers = await User.find(filter, fields)
-    .sort(sort)
-    .skip(skip)
-    .limit(limit);
+  const allUsers = await QueryListing(User, req.query);
   if (allUsers.length === 0) {
     res.status(404).json({
       success: false,
@@ -23,7 +19,7 @@ exports.getAllUser = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       message: "got users successfully!",
-      data: { page, length: allUsers.length, allUsers },
+      data: { page: req.query.pageNumber, length: allUsers.length, allUsers },
     });
   }
 });

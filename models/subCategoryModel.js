@@ -21,12 +21,12 @@ const subCategorySchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
-    categoryName:{
-      type:String,
-      required:true
-    }
+    categoryName: {
+      type: String,
+      required: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 subCategorySchema.pre("save", function () {
@@ -40,6 +40,4 @@ subCategorySchema.pre("findOneAndUpdate", function () {
   }
 });
 
-const subCategory = mongoose.model("subCategory", subCategorySchema);
-
-module.exports = subCategory;
+module.exports = mongoose.model("subCategory", subCategorySchema);

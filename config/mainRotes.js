@@ -1,8 +1,8 @@
 // all project routes
-const categoryRout = require("../routes/categoryRoutes");
-const subCategoryRout = require("../routes/subCategoryRoutes");
-const brandRout = require("../routes/brandRoutes");
-const productRout = require("../routes/productRoutes");
+const categoryRout = require("../routes/category.Routes");
+const subCategoryRout = require("../routes/subCategory.Routes");
+const brandRout = require("../routes/brand.Routes");
+const productRout = require("../routes/product.Routes");
 const userRout = require("../routes/userRoutes");
 const cartRout = require("../routes/cartRoutes");
 

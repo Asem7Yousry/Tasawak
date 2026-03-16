@@ -14,11 +14,11 @@ const { verifyRefreshToken } = require("../utils/AuthMethods");
 exports.signUp = asyncHandler(async (req, res, next) => {
   try {
     const newUser = await User.create(req.body);
-    let token = await jwtCreator(newUser);
+    let { accessToken, refreshToken } = await jwtCreator(newUser);
     res.status(201).json({
       success: true,
       message: "signed up successfully!",
-      data: { token },
+      data: { accessToken, refreshToken },
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -48,11 +48,11 @@ exports.logIn = asyncHandler(async (req, res, next) => {
   if (!isCorrectPassword) {
     return next(new ApiError(`wrong password`));
   }
-  let token = await jwtCreator(user);
+  let { accessToken, refreshToken } = await jwtCreator(user);
   res.status(200).json({
     success: true,
     message: "loged in successfully!",
-    data: { token },
+    data: { accessToken, refreshToken },
   });
 });
 
@@ -73,7 +73,6 @@ exports.generateToken = asyncHandler(async (req, res, next) => {
     data: { accessToken },
   });
 });
-
 
 // @doc update specific User by ID
 // @route put /api/User/:userID
@@ -171,7 +170,7 @@ exports.verifyOTP = async (req, res, next) => {
   }
 };
 
-// @doc resetting password after verfing 
+// @doc resetting password after verfing
 // @route put /api/User/resetPassword/
 // @access public
 exports.resetPassword = async (req, res, next) => {
