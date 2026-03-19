@@ -1,5 +1,6 @@
 const Product = require("../models/productModel");
 const { QueryListing } = require("../utils/queryListing");
+const { getCache, cacheRedis, delCache } = require("../utils/redis.methods");
 
 // create Product
 exports.create = (req) => Product.create(req.body);
@@ -10,11 +11,28 @@ exports.list = (req) => {
 };
 
 // get specific Product
-exports.getById = (id) => Product.findById(id);
+exports.getById = async (id) => {
+  // get product from cache first
+  let key = `product_${id}`;
+  let product = await getCache(key);
+  // if not cached get from DB
+  if (!product) {
+    product = await Product.findById(id);
+    let { createdAt, updatedAt, slug, __v, ...restProduct } = product;
+    product = restProduct;
+    await cacheRedis(key, product, Number(process.env.Redis_Expriation_Time));
+  } else {
+    product = JSON.parse(product);
+  }
+  return product;
+};
 
 exports.updateById = (id, updates) =>
   Product.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
 
 exports.deleteAll = () => Product.deleteMany({});
 
-exports.deleteById = (id) => Product.findByIdAndDelete(id);
+exports.deleteById = async (id) => {
+  await delCache(`product_${id}`);
+  await Product.findByIdAndDelete(id);
+};

@@ -19,11 +19,10 @@ exports.getMyCart = asyncHandler(async (req, res, next) => {
 exports.addToCart = asyncHandler(async (req, res, next) => {
   let cart = await cartServices.addCartItem(
     req.user._id,
-    req.body.productId,
     req.body.quantity || 1,
-    req.product.price,
-    req.product.name,
-    req.product.quantity,
+    req.body.color,
+    req.body.size,
+    req.product,
   );
   if (!cart) {
     return next(new ApiError(`cart ID ${req.user.cartId} not exists`, 404));
@@ -42,6 +41,8 @@ exports.removeCartItem = asyncHandler(async (req, res, next) => {
   let cart = await cartServices.removeCartItem(
     req.user._id,
     req.body.productId,
+    req.body.color,
+    req.body.size,
   );
   res
     .status(202)
@@ -72,6 +73,8 @@ exports.changeQuantity = asyncHandler(async (req, res, next) => {
     req.body.productId,
     req.body.quantity,
     req.product.price,
+    req.body.color,
+    req.body.size,
   );
   if (!changedCart) {
     return next(new ApiError(`cart ID ${req.user.cartId} not exists`, 404));

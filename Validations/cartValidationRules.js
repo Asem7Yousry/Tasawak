@@ -2,7 +2,7 @@ const { check } = require("express-validator");
 const mongoose = require("mongoose");
 const validatorMiddleWare = require("../middlewares/ValidatorMiddleWareMethod");
 const ApiError = require("../utils/apiError");
-const redis = require("../config/redis.config");
+const { cacheRedis, getCache } = require("../utils/redis.methods");
 
 exports.addCartItemOrQuantity = [
   check("productId")
@@ -11,23 +11,23 @@ exports.addCartItemOrQuantity = [
     .isMongoId()
     .withMessage("not valid mongo ID for product")
     .custom(async (val, { req }) => {
-      let myProduct = await redis.get(`product_${val}`);
+      const key = `product_${val}`;
+      // check if product exists in cache first
+      let myProduct = await getCache(key);
       if (!myProduct) {
         // get product from DB IF Not cached
-        let Product = mongoose.model("Products");
+        const Product = mongoose.model("Products");
         myProduct = await Product.findById(val).lean();
         if (!myProduct) {
           return Promise.reject(
             new ApiError(`no product found with id: ${val}`, 404),
           );
         }
-        // Cache only required fields
-        let { _id, name, price, quantity } = myProduct;
-        myProduct = { _id, name, price, quantity };
-        await redis.set(
-          `product_${val}`,
-          JSON.stringify(myProduct),
-          'EX',
+        let { createdAt, updatedAt, slug, __v, ...restProduct } = myProduct;
+        myProduct = restProduct;
+        await cacheRedis(
+          key,
+          myProduct,
           Number(process.env.Redis_Expriation_Time),
         );
       } else {
