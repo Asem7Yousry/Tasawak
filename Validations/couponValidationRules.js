@@ -8,16 +8,20 @@ exports.getSpecificCouponValidator = [
   validatorMiddleWare,
 ];
 
-exports.createCouponValidator = [
-  check("name")
+const codeValidation = [
+  check("code")
     .notEmpty()
-    .withMessage("name is required")
+    .withMessage("code is required")
     .matches(/^[A-Za-z\u0600-\u06FF\s]+$/)
-    .withMessage("name only accepts letters")
+    .withMessage("code only accepts letters")
     .isLength({ min: 3 })
-    .withMessage("name can't be less than 3")
+    .withMessage("code can't be less than 3")
     .isLength({ max: 15 })
-    .withMessage("name can't be more than 15"),
+    .withMessage("code can't be more than 15"),
+];
+
+exports.createCouponValidator = [
+  codeValidation,
   check("expireAt")
     .notEmpty()
     .withMessage("expiration date is required")
@@ -30,3 +34,5 @@ exports.createCouponValidator = [
     .withMessage("discount is required"),
   validatorMiddleWare,
 ];
+
+exports.applyCouponValidation = [codeValidation, validatorMiddleWare];

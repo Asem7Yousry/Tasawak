@@ -12,7 +12,7 @@ new Worker(
     cart = JSON.parse(cart);
     await Cart.findOneAndUpdate(
       { userId },
-      { items: cart.items, totalPrice: cart.totalPrice },
+      { items: cart.items, totalPrice: cart.totalPrice, coupon: cart.coupon },
       { upsert: true },
     );
   },

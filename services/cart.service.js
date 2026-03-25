@@ -1,7 +1,6 @@
 const Cart = require("../models/cartModel");
 const ApiError = require("../utils/apiError");
-const { getOrCreate } = require("../utils/jwtMethod");
-const { cartQueue } = require("../utils/queues");
+const { saveCartJob } = require("../utils/queues");
 const { cacheRedis, delCache, getCache } = require("../utils/redis.methods");
 
 // create key for product in cart items
@@ -10,21 +9,6 @@ const getProductKey = (id, productColor, productSize) => {
   SizeString = productSize || "#";
   return `${id}_${ColorString}_${SizeString}`;
 };
-
-async function saveCartJob(userId) {
-  /* function to add/override a background job
-  to save cart in DB before expiration in redis cache*/
-  await cartQueue.add(
-    "save-cart",
-    { userId },
-    {
-      jobId: `cart-save-${userId}`,
-      delay: (Number(process.env.Redis_Expriation_Time) - 4 * 60) * 1000,
-      removeOnComplete: true,
-      removeOnFail: true,
-    },
-  );
-}
 
 // create new cart for each user
 exports.createCart = (data) => Cart.create(data);
@@ -35,10 +19,13 @@ exports.getCart = async (userId) => {
   // get cart from redis if it was cached
   let cart = await getCache(cartKey);
   if (cart) {
-    return JSON.parse(cart);
+    return cart;
   }
   // if not get it from mongooDB
-  cart = await getOrCreate(Cart, { userId }, { userId });
+  cart = await Cart.findOne({ userId });
+  if (!cart) {
+    cart = await this.createCart({ userId });
+  }
   // save cart in Redis
   let { items, totalPrice } = cart;
   cart = { items, totalPrice };
@@ -168,13 +155,17 @@ exports.changeCartItemQuantity = async (
 // clear cart in cache and mongoDB
 exports.clearCart = async (userId) => {
   await delCache(`cart_${userId}`);
-  return Cart.findOneAndUpdate(
-    { userId: userId },
+  const myCart = await Cart.findOneAndUpdate(
+    { userId },
     {
       $set: { items: {}, totalPrice: 0 },
     },
     { new: true },
   );
+  if (!myCart) {
+    throw new ApiError("no cart found", 404);
+  }
+  return myCart;
 };
 
 // delete cart

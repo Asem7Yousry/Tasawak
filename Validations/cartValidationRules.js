@@ -31,15 +31,14 @@ exports.addCartItemOrQuantity = [
           Number(process.env.Redis_Expriation_Time),
         );
       } else {
-        myProduct = JSON.parse(myProduct);
+        myProduct = myProduct;
       }
       // Attach to request
       req.product = myProduct;
       return true;
     }),
   check("quantity")
-    .notEmpty()
-    .withMessage("quantity is required")
+    .optional()
     .isInt()
     .withMessage("quantity must be integer")
     .custom((val, { req }) => {

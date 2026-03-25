@@ -19,7 +19,6 @@ router
   )
   .delete(
     adminGuard,
-    couponValidation.getSpecificCouponValidator,
     CopServ.deleteAllCoupon,
   );
 

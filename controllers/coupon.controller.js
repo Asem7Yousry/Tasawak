@@ -42,3 +42,18 @@ exports.deleteSpecificCoupon = factory.deleteSpecificDoc(
 // @route delete /api/coupon/:couponID
 // @access private
 exports.deleteAllCoupon = factory.deleteAllDocs(couponServices, "Coupon");
+
+// @doc apply coupon on user cart
+// @route put /api/cart/apply-coupon
+// @access private
+exports.applyCoupon = async (req, res) => {
+  const cart = await couponServices.applyCouponServ(
+    req.body.couponCode,
+    req.user._id,
+  );
+  res.status(201).json({
+    success: true,
+    message: "coupon applied",
+    data: { cart },
+  });
+};
