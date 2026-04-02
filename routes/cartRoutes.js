@@ -1,5 +1,6 @@
 const express = require("express");
 const cartController = require("../controllers/cartControler");
+const couponController = require("../controllers/coupon.controller");
 const cartRules = require("../Validations/cartValidationRules");
 const { verifyAuthentication } = require("../utils/AuthMethods");
 
@@ -28,5 +29,8 @@ router
 router
   .route("/change-Quantity")
   .put(cartRules.addCartItemOrQuantity, cartController.changeQuantity);
+
+// @desc apply coupon on cart to reset totla price
+router.route("/apply-coupon").post(couponController.applyCoupon);
 
 module.exports = router;

@@ -26,7 +26,7 @@ const BasicValidation = [
 ];
 
 exports.getSpecificProduct = [
-  check("productID").isMongoId().withMessage("not Valid Mongo Id for category"),
+  check("productID").isMongoId().withMessage("not Valid Mongo Id for product"),
   validatorMiddleWare,
 ];
 
@@ -47,7 +47,7 @@ exports.createProductValidator = [
   check("subCategories.*")
     .isMongoId()
     .withMessage("not Valid Mongo Id for subCategory"),
-  check("price")
+  check("basePrice")
     .notEmpty()
     .withMessage("price is required")
     .isNumeric()

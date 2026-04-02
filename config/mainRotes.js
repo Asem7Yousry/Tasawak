@@ -5,6 +5,7 @@ const brandRout = require("../routes/brand.Routes");
 const productRout = require("../routes/product.Routes");
 const userRout = require("../routes/userRoutes");
 const cartRout = require("../routes/cartRoutes");
+const couponRout = require("../routes/coupon.Routes");
 
 const allRoutes = (app) => {
   app.use("/api/category", categoryRout);
@@ -13,6 +14,7 @@ const allRoutes = (app) => {
   app.use("/api/product", productRout);
   app.use("/api/users", userRout);
   app.use("/api/cart", cartRout);
+  app.use("/api/coupon", couponRout);
 };
 
 module.exports = allRoutes;
