@@ -4,10 +4,8 @@ const { saveCartJob } = require("../utils/queues");
 const { cacheRedis, delCache, getCache } = require("../utils/redis.methods");
 
 // create key for product in cart items
-const getProductKey = (id, productColor, productSize) => {
-  ColorString = productColor || "#";
-  SizeString = productSize || "#";
-  return `${id}_${ColorString}_${SizeString}`;
+const getProductKey = (id, variationId = "") => {
+  return `${id}_${variationId}`;
 };
 
 // create new cart for each user
@@ -29,86 +27,69 @@ exports.getCart = async (userId) => {
   // save cart in Redis
   let { items, totalPrice } = cart;
   cart = { items, totalPrice };
-  await cacheRedis(cartKey, cart, Number(process.env.Redis_Expriation_Time));
+  await cacheRedis(cartKey, cart);
   return cart;
 };
 
 // add product to cart
-exports.addCartItem = async (
-  userId,
-  quantity,
-  productColor,
-  productSize,
-  product,
-) => {
+exports.addCartItem = async (userId, quantity, variationId, product) => {
   // get cart
   let mycart = await this.getCart(userId);
 
   // create key for product
-  const productKey = getProductKey(product._id, productColor, productSize);
+  const productKey = getProductKey(product._id, variationId);
 
   // check if product already exists in cart or not
   const item = mycart.items[productKey];
   if (item) {
     const newQuantity = Number(item.quantity) + Number(quantity);
-    if (newQuantity > product.quantity) {
-      throw new ApiError(`You can't order more than ${product.quantity}`, 400);
+    if (newQuantity > product.variations[variationId].quantity) {
+      throw new ApiError(
+        `You can't order more than ${product.variations[variationId].quantity}`,
+        400,
+      );
     }
     mycart.totalPrice -= item.piecePrice * item.quantity;
-    mycart.totalPrice += product.price * newQuantity;
+    mycart.totalPrice +=
+      product.variations[variationId].peacePrice * newQuantity;
 
     item.quantity = newQuantity;
-    item.piecePrice = product.price;
+    item.piecePrice = product.variations[variationId].peacePrice;
   } else {
     quantity = Number(quantity);
     let productName = product.name;
-    let piecePrice = product.price;
+    let piecePrice = product.variations[variationId].peacePrice;
     mycart.items[productKey] = {
       quantity,
       productName,
-      productColor,
-      productSize,
       piecePrice,
     };
 
     mycart.totalPrice += piecePrice * quantity;
   }
   // save in Redis
-  await cacheRedis(
-    `cart_${userId}`,
-    mycart,
-    Number(process.env.Redis_Expriation_Time),
-  );
+  await cacheRedis(`cart_${userId}`, mycart);
   // create job to save cart before expiration
   await saveCartJob(userId);
   return mycart;
 };
 
 // delete product from cart
-exports.removeCartItem = async (
-  userId,
-  productId,
-  productColor,
-  productSize,
-) => {
+exports.removeCartItem = async (userId, productId, variationId) => {
   // get chached cart, if not then from DB
   let cart = await this.getCart(userId);
   // Find the item inside the array
-  const productKey = getProductKey(productId, productColor, productSize);
+  const productKey = getProductKey(productId, variationId);
   let item = cart.items[productKey];
   if (!item) {
-    throw new ApiError(`product not exists in cart`, 404);
+    throw new ApiError(`product variation not exists in cart`, 404);
   }
   let quantity = item.quantity;
   let productPrice = item.piecePrice;
   delete cart.items[productKey];
   cart.totalPrice -= productPrice * quantity;
   // save changes in redis cache
-  await cacheRedis(
-    `cart_${userId}`,
-    cart,
-    Number(process.env.Redis_Expriation_Time),
-  );
+  await cacheRedis(`cart_${userId}`, cart);
   // create job to save cart before expiration
   await saveCartJob(userId);
   return cart;
@@ -118,26 +99,26 @@ exports.removeCartItem = async (
 exports.changeCartItemQuantity = async (
   userId,
   productId,
+  variationId,
   newQuantity,
-  productPrice,
-  color,
-  size,
+  product,
 ) => {
   const cart = await this.getCart(userId);
   // Find the item inside the cart items
-  const productKey = getProductKey(productId, color, size);
+  const productKey = getProductKey(productId, variationId);
   let item = cart.items[productKey];
   if (!item) {
-    throw new ApiError(`product not exists in cart`, 404);
+    throw new ApiError(`product variation not exists in cart`, 404);
   }
+  const price = product.variations[variationId].peacePrice;
   // check if there is an increase or decrease in cart product
-  if (productPrice != item.piecePrice) {
+  if (price != item.piecePrice) {
     cart.totalPrice -= item.piecePrice * item.quantity;
-    cart.totalPrice += productPrice * newQuantity;
-    item.piecePrice = productPrice;
+    cart.totalPrice += price * newQuantity;
+    item.piecePrice = price;
   } else {
     let changeInQuantity = newQuantity - item.quantity;
-    cart.totalPrice += productPrice * changeInQuantity;
+    cart.totalPrice += price * changeInQuantity;
   }
   // set new quantity
   item.quantity = Number(newQuantity);

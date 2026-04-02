@@ -4,9 +4,9 @@ const redis = require("../config/redis.config");
 exports.cacheRedis = async (
   key,
   payload,
-  expirationTime = Number(process.env.Redis_Expriation_Time),
+  expirationTime = process.env.Redis_Expriation_Time,
 ) => {
-  await redis.set(key, JSON.stringify(payload), "EX", expirationTime);
+  await redis.set(key, JSON.stringify(payload), "EX", Number(expirationTime));
 };
 
 // method to delete cache

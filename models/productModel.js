@@ -1,6 +1,23 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
-const { cacheRedis } = require("../utils/redis.methods");
+const { delCache } = require("../utils/redis.methods");
+
+// variation schema for each product
+const productVariationSchema = new mongoose.Schema(
+  {
+    productId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Product",
+      required: true,
+      index: true,
+    },
+    attribute: { type: Map, of: String },
+    quantity: { type: Number, required: true, min: 0 },
+    peacePrice: { type: Number, required: true },
+    image: String,
+  },
+  { timestamps: true },
+);
 
 const productSchema = new mongoose.Schema(
   {
@@ -19,14 +36,6 @@ const productSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
-    categoryName: {
-      type: String,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-    },
     subCategories: [
       {
         type: mongoose.Schema.ObjectId,
@@ -39,18 +48,9 @@ const productSchema = new mongoose.Schema(
       ref: "Brand",
       required: true,
     },
-    colors: {
-      type: [String],
-      default: undefined,
-    },
-    sizes: {
-      type: [String],
-      default: undefined,
-    },
-    quantity: {
+    basePrice: {
       type: Number,
-      default: 1,
-      min: [1, "quantity must be above or equal 1"],
+      required: true,
     },
     rateAverage: {
       type: Number,
@@ -66,45 +66,64 @@ const productSchema = new mongoose.Schema(
       default: 0,
     },
     slug: String,
-    images: [String],
     imageCover: String,
+    soldOut: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
 
-// create text index on name , description
+// indexes
 productSchema.index({
   name: "text",
   description: "text",
-  categoryName: "text",
 });
 
+// webhocks
+const clearProductCache = async (productId) => {
+  if (!productId) return;
+  await delCache(`product_${productId}`);
+};
+
+// ================= PRODUCT =================
 productSchema.pre("save", function () {
-  this.slug = slugify(this.name);
+  if (this.isModified("name")) {
+    this.slug = slugify(this.name, { lower: true, strict: true });
+  }
 });
 
-productSchema.pre("findOneAndUpdate", async function () {
+productSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function () {
   const update = this.getUpdate();
-  // update slug if name changed
   if (update?.name) {
-    update.slug = slugify(update.name);
+    update.slug = slugify(update.name, { lower: true, strict: true });
+    this.setUpdate(update);
   }
 });
 
-productSchema.post("findOneAndUpdate", async function (doc) {
-  const update = this.getUpdate();
-  // handle price change → update Redis
-  if ((update?.$set.price || update?.$set.quantity) && doc) {
-    // set (or override) value of cached product
-    let { _doc } = doc;
-    await cacheRedis(
-      `product_${doc._id}`,
-      _doc,
-      Number(process.env.Redis_Expriation_Time),
-    );
-  }
-});
+productSchema.post(
+  ["findOneAndUpdate", "updateOne", "findOneAndDelete", "deleteOne"],
+  async function (doc) {
+    if (!doc) return;
+    await clearProductCache(doc._id);
+  },
+);
 
+// ================= VARIATIONS =================
+productVariationSchema.post(
+  ["findOneAndUpdate", "updateOne", "save", "findOneAndDelete", "deleteOne"],
+  async function (doc) {
+    if (!doc) return;
+    await clearProductCache(doc.productId);
+  },
+);
+
+// products models
 const Product = mongoose.model("Products", productSchema);
+const productVariation = mongoose.model(
+  "productVariation",
+  productVariationSchema,
+);
 
-module.exports = Product;
+module.exports = { Product, productVariation };

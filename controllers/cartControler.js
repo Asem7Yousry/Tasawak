@@ -16,8 +16,7 @@ exports.addToCart = asyncHandler(async (req, res) => {
   let cart = await cartServices.addCartItem(
     req.user._id,
     req.body.quantity || 1,
-    req.body.color,
-    req.body.size,
+    req.body.variationId,
     req.product,
   );
   res.status(202).json({
@@ -34,8 +33,7 @@ exports.removeCartItem = asyncHandler(async (req, res) => {
   let cart = await cartServices.removeCartItem(
     req.user._id,
     req.body.productId,
-    req.body.color,
-    req.body.size,
+    req.body.variationId,
   );
   res
     .status(202)
@@ -61,10 +59,9 @@ exports.changeQuantity = asyncHandler(async (req, res) => {
   let changedCart = await cartServices.changeCartItemQuantity(
     req.user._id,
     req.body.productId,
+    req.body.variationId,
     req.body.quantity,
-    req.product.price,
-    req.body.color,
-    req.body.size,
+    req.product,
   );
   res.status(202).json({
     success: true,
