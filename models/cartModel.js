@@ -13,10 +13,7 @@ const cartSchema = new mongoose.Schema(
       default: {},
     },
     totalPrice: { type: Number, default: 0, min: 0 },
-    coupon: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Coupon",
-    },
+    coupon: String,
   },
   {
     timestamps: true,

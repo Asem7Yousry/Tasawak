@@ -25,8 +25,8 @@ exports.getCart = async (userId) => {
     cart = await this.createCart({ userId });
   }
   // save cart in Redis
-  let { items, totalPrice } = cart;
-  cart = { items, totalPrice };
+  let { items, totalPrice, coupon } = cart;
+  cart = { items, totalPrice, coupon };
   await cacheRedis(cartKey, cart);
   return cart;
 };

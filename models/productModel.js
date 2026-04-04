@@ -107,6 +107,10 @@ productSchema.post(
   async function (doc) {
     if (!doc) return;
     await clearProductCache(doc._id);
+    // if (doc.sold === doc.quantity) {
+    //   doc.soldOut = true;
+    //   await doc.save();
+    // }
   },
 );
 
@@ -116,6 +120,9 @@ productVariationSchema.post(
   async function (doc) {
     if (!doc) return;
     await clearProductCache(doc.productId);
+    // const product = await mongoose
+    //   .model("Products")
+    //   .findByIdAndUpdate(doc.productId, { $inc: { sold: doc.quantity } });
   },
 );
 

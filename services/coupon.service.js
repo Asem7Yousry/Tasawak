@@ -34,7 +34,7 @@ exports.getByCode = async (code) => {
   await cacheRedis(
     `coupon_${code}`,
     coupon,
-    Math.floor(coupon.expireAt - new Date() / 1000),
+    Math.floor(new Date(coupon.expireAt) - new Date() / 1000),
   );
   return coupon;
 };
@@ -54,8 +54,10 @@ exports.applyCouponServ = async (couponCode, userId) => {
   if (!cart || Object.values(cart.items).length === 0) {
     throw new ApiError("no cart found", 404);
   }
-  cart.coupon = coupon._id;
-  const returnedCart = calcDiscountedPrice(cart, coupon);
+  cart.coupon = coupon.code;
+  let returnedCart = { ...cart };
+  const discountedPrice = calcDiscountedPrice(cart.totalPrice, coupon);
+  returnedCart.priceAfterDiscount = discountedPrice;
 
   // override cart and background job
   cacheRedis(`cart_${userId}`, cart);

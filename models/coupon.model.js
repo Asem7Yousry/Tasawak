@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { delCache } = require("../utils/redis.methods");
 
 const couponSchema = new mongoose.Schema(
   {
@@ -42,11 +43,13 @@ const couponSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// couponSchema.pre("findOneAndUpdate", async function (doc) {
-//   const update = this.getUpdate();
-//   if (update?.usedCount && update.usedCount === doc.maxUsageLimit) {
-//     update.isActive = false;
-//   }
-// });
+couponSchema.pre("findOneAndUpdate", async function () {
+  const doc = await this.model.findOne(this.getQuery());
+  const update = this.getUpdate();
+  if (update?.usedCount && update.usedCount === doc.maxUsageLimit) {
+    update.isActive = false;
+  }
+  await delCache(`coupon_${doc.code}`);
+});
 
 module.exports = mongoose.model("Coupon", couponSchema);
