@@ -18,7 +18,7 @@ router
 // @desc routes for add product to cart
 router
   .route("/add-to-cart")
-  .put(cartRules.addCartItemOrQuantity, cartController.addToCart);
+  .post(cartRules.addCartItemOrQuantity, cartController.addToCart);
 
 // @desc routes for remove product from cart
 router

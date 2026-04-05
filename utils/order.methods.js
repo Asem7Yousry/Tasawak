@@ -1,17 +1,15 @@
 const Order = require("../models/order.Model");
 const { Product, productVariation } = require("../models/productModel");
-const { getCache, cacheRedis, delCache } = require("../utils/redis.methods");
+const { delCache } = require("./redis.methods");
 const ApiError = require("../utils/apiError");
-const cartServ = require("./cart.service");
-const prodServ = require("./product.service");
-const variationServ = require("./product.variations.services");
-const couponServ = require("./coupon.service");
-const { calcDiscountedPrice } = require("../utils/calculate.discount");
-const asyncHandler = require("express-async-handler");
+const cartServ = require("../services/cart.service");
+const prodServ = require("../services/product.service");
+const couponServ = require("../services/coupon.service");
+const { calcDiscountedPrice } = require("./calculate.discount");
 
 // Constants for pricing (can be moved to config later)
 const TAX_RATE = 0; // e.g., 0.1 for 10%
-const SHIPPING_COST = 0;
+const SHIPPING_COST = 20;
 
 // create order with cash payment method
 exports.checkOut = async (userId) => {
@@ -113,7 +111,7 @@ exports.checkOut = async (userId) => {
   }
 
   // apply coupon if exists
-  const subtotal = totalPrice; // Total before any discounts
+  const subtotal = totalPrice; // Total before any discounts and taxes
   let discountAmount = 0;
   let discountType = null;
   let totalAfterDiscount = totalPrice;
