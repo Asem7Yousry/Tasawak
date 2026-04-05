@@ -1,4 +1,5 @@
 const Order = require("../models/order.Model");
+const { Product, productVariation } = require("../models/productModel");
 const { getCache, cacheRedis, delCache } = require("../utils/redis.methods");
 const ApiError = require("../utils/apiError");
 const cartServ = require("./cart.service");
@@ -8,60 +9,154 @@ const couponServ = require("./coupon.service");
 const { calcDiscountedPrice } = require("../utils/calculate.discount");
 const asyncHandler = require("express-async-handler");
 
+// Constants for pricing (can be moved to config later)
+const TAX_RATE = 0; // e.g., 0.1 for 10%
+const SHIPPING_COST = 0;
+
 // create order with cash payment method
-exports.cashOrder = async (userId) => {
+exports.checkOut = async (userId) => {
   // get cart items
   const cart = await cartServ.getCart(userId);
   if (!cart || Object.values(cart.items).length === 0) {
     throw new ApiError("no cart found", 404);
   }
+
   const orderItems = [];
+  const variationBulkOptions = [];
+  const productBulkOptions = [];
+  const productIdsSet = new Set();
+  const priceChanges = []; // Collect price discrepancies
+  const insufficientQuantities = []; // Collect insufficient stock issues
+  let orderJson = {};
   let totalPrice = 0;
-  // map cart items to order items and check if the quantity of each item is available or not
+
+  // map cart items to order items and validate
   for (const key of Object.keys(cart.items)) {
     const item = cart.items[key];
     const [productId, variationId] = key.split("_");
+    productIdsSet.add(productId);
+
     const product = await prodServ.getById(productId);
     const Variation = product.variations[variationId];
-    if (Variation && item.quantity <= Variation.quantity) {
-      orderItems.push({
-        productId: productId,
-        variationId: variationId,
-        price: Variation.peacePrice,
-        quantity: item.quantity,
-      });
-      totalPrice += item.quantity * Variation.peacePrice;
-    } else {
-      throw new ApiError(
-        `quantity of variation ${variationId} not available`,
-        403,
-      );
+
+    if (!Variation) {
+      throw new ApiError(`variation with ID ${variationId} not found`, 404);
     }
+
+    // Check quantity availability
+    if (item.quantity > Variation.quantity) {
+      insufficientQuantities.push({
+        productName: product.name,
+        variationId,
+        available: Variation.quantity,
+        requested: item.quantity,
+      });
+      continue; // Skip this item
+    }
+
+    // Check for price changes
+    if (item.piecePrice !== Variation.piecePrice) {
+      priceChanges.push({
+        productName: product.name,
+        variationId,
+        oldPrice: item.piecePrice,
+        newPrice: Variation.piecePrice,
+      });
+      continue; // Skip adding to order items if price changed
+    }
+
+    orderItems.push({
+      productId,
+      variationId,
+      price: Variation.piecePrice,
+      quantity: item.quantity,
+    });
+    totalPrice += item.quantity * Variation.piecePrice;
+
+    variationBulkOptions.push({
+      updateOne: {
+        filter: { _id: variationId },
+        update: { $inc: { quantity: -item.quantity } },
+      },
+    });
+
+    productBulkOptions.push({
+      updateOne: {
+        filter: { _id: productId },
+        update: { $inc: { sold: item.quantity } },
+      },
+    });
   }
-  // apply coupon if exist
+
+  // If any insufficient quantities, throw error with details
+  if (insufficientQuantities.length > 0) {
+    const messages = insufficientQuantities.map(
+      (item) =>
+        `${item.productName} (variation ${item.variationId}): requested ${item.requested}, available ${item.available}`,
+    );
+    throw new ApiError(
+      `Insufficient quantities: ${messages.join("; ")}. Please adjust your cart.`,
+      403,
+    );
+  }
+
+  // If any price changes detected, throw error with details
+  if (priceChanges.length > 0) {
+    const changeMessages = priceChanges.map(
+      (change) =>
+        `${change.productName} (variation ${change.variationId}): ${change.oldPrice} → ${change.newPrice}`,
+    );
+    throw new ApiError(
+      `Price changes detected: ${changeMessages.join("; ")}. Please review your cart.`,
+      400,
+    );
+  }
+
+  // apply coupon if exists
+  const subtotal = totalPrice; // Total before any discounts
+  let discountAmount = 0;
+  let discountType = null;
+  let totalAfterDiscount = totalPrice;
+
   let couponCode = cart.coupon;
   if (couponCode) {
     couponCode = await couponServ.getByCode(couponCode);
     if (couponCode) {
-      totalPrice = calcDiscountedPrice(cart.totalPrice, couponCode);
+      const originalTotal = totalPrice;
+      totalPrice = calcDiscountedPrice(totalPrice, couponCode);
+      discountAmount = originalTotal - totalPrice;
+      discountType = couponCode.type;
+      totalAfterDiscount = totalPrice;
+
+      orderJson.couponApplied = couponCode._id;
+      orderJson.couponDiscount = couponCode.discount;
+      orderJson.discountType = discountType;
+      orderJson.discountAmount = discountAmount;
     }
   }
+
+  // Calculate final total with tax and shipping
+  const taxPrice = totalPrice * TAX_RATE;
+  totalPrice += taxPrice + SHIPPING_COST;
+
+  orderJson.subtotal = subtotal;
+  orderJson.totalAfterDiscount = totalAfterDiscount;
+  orderJson.taxPrice = taxPrice;
+  orderJson.shippingPrice = SHIPPING_COST;
+  orderJson.totalPrice = totalPrice;
+  orderJson.userId = userId;
+  orderJson.cartItems = orderItems;
+
   // create order
-  const order = await Order.create({
-    userId,
-    cartItems: orderItems,
-    couponApllied: couponCode ? couponCode._id : null,
-    couponDiscount: couponCode ? couponCode.discount : null,
-    totalPrice,
-  });
-  // override product variation quantities
-  // for (const item of orderItems) {
-  //   const product = await prodServ.getById(item.productId);
-  //   const variation = product.variations[item.variationId];
-  //   variation.quantity -= item.quantity;
-  //   await product.save();
-  // }
-  // delete cart from cache and database
+  const order = await Order.create(orderJson);
+
+  // update inventory
+  await productVariation.bulkWrite(variationBulkOptions);
+  await Product.bulkWrite(productBulkOptions);
+
+  // cleanup
+  productIdsSet.forEach((id) => delCache(`product_${id}`));
   await cartServ.deleteCart(userId);
+
   return order;
 };

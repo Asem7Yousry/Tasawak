@@ -51,14 +51,14 @@ exports.addCartItem = async (userId, quantity, variationId, product) => {
     }
     mycart.totalPrice -= item.piecePrice * item.quantity;
     mycart.totalPrice +=
-      product.variations[variationId].peacePrice * newQuantity;
+      product.variations[variationId].piecePrice * newQuantity;
 
     item.quantity = newQuantity;
-    item.piecePrice = product.variations[variationId].peacePrice;
+    item.piecePrice = product.variations[variationId].piecePrice;
   } else {
     quantity = Number(quantity);
     let productName = product.name;
-    let piecePrice = product.variations[variationId].peacePrice;
+    let piecePrice = product.variations[variationId].piecePrice;
     mycart.items[productKey] = {
       quantity,
       productName,
@@ -110,7 +110,7 @@ exports.changeCartItemQuantity = async (
   if (!item) {
     throw new ApiError(`product variation not exists in cart`, 404);
   }
-  const price = product.variations[variationId].peacePrice;
+  const price = product.variations[variationId].piecePrice;
   // check if there is an increase or decrease in cart product
   if (price != item.piecePrice) {
     cart.totalPrice -= item.piecePrice * item.quantity;

@@ -57,11 +57,18 @@ const orderSchema = new mongoose.Schema(
       default: false,
     },
     deliveredAt: Date,
-    couponApllied: {
+    couponApplied: {
       type: mongoose.Schema.ObjectId,
       ref: "Coupon",
     },
-    couponDiscount: Number,
+    couponDiscount: Number, // Original discount value from coupon
+    discountType: {
+      type: String,
+      enum: ["fixed", "percentage"],
+    },
+    discountAmount: Number, // Actual discount amount applied
+    subtotal: Number, // Total before discount
+    totalAfterDiscount: Number, // Total after discount but before tax/shipping
   },
   { timestamps: true },
 );

@@ -5,7 +5,7 @@ const asyncHandler = require("express-async-handler");
 // @route Post /api/order
 // @access private
 exports.createOrder = asyncHandler(async (req, res) => {
-  const data = await orderServ.cashOrder(req.user._id);
+  const data = await orderServ.checkOut(req.user._id);
   res.status(201).json({
     success: true,
     message: "created successfully!",

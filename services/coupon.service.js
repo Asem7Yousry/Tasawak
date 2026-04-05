@@ -20,21 +20,23 @@ exports.getById = (id) => Coupon.findById(id);
 // get specific Coupon by code
 exports.getByCode = async (code) => {
   let coupon = await getCache(`coupon_${code}`);
-  if (coupon) {
+  // Check if cached coupon is still valid (not expired)
+  if (coupon && new Date(coupon.expireAt) > new Date() && coupon.isActive) {
     return coupon;
   }
+  // If expired or inactive, remove from cache and fetch fresh
   coupon = await Coupon.findOne({
     code,
     expireAt: { $gt: new Date() },
     isActive: true,
   });
   if (!coupon) {
-    throw new ApiError("expried coupon", 403);
+    throw new ApiError("expired coupon", 403);
   }
   await cacheRedis(
     `coupon_${code}`,
     coupon,
-    Math.floor(new Date(coupon.expireAt) - new Date() / 1000),
+    Math.floor((new Date(coupon.expireAt) - new Date()) / 1000),
   );
   return coupon;
 };
