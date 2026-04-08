@@ -33,4 +33,7 @@ router
 // @desc apply coupon on cart to reset totla price
 router.route("/apply-coupon").post(couponController.applyCoupon);
 
+// @desc remove coupon applied on cart 
+router.route("/remove-coupon").delete(couponController.removeCoupon);
+
 module.exports = router;

@@ -5,7 +5,7 @@ const ApiError = require("../utils/apiError");
 
 // create order with cash payment method
 exports.create = async (req) => {
-  const order = await checkOut(req.user._id);
+  const order = await checkOut(req);
   return order;
 };
 

@@ -67,3 +67,17 @@ exports.applyCouponServ = async (couponCode, userId) => {
 
   return returnedCart;
 };
+
+// remove coupon from cart
+exports.removeCouponServ = async (userId) => {
+  let cart = await cartServ.getCart(userId);
+  if (!cart || Object.values(cart.items).length === 0) {
+    throw new ApiError("no cart found", 404);
+  }
+  const cartId = cart._id;
+  cart = await cartServ.updateById(cartId, {
+    $unset: { coupon: "" },
+  });
+  cacheRedis(`cart_${userId}`, cart);
+  return cart;
+};

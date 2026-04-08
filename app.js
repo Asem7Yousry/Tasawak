@@ -4,15 +4,17 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const ApiError = require("./utils/apiError");
 const errorHandellingMiddleWare = require("./middlewares/errorMiddlWare");
-const allRoutes = require("./config/mainRotes")
-
+const allRoutes = require("./config/mainRotes");
+const cors = require("cors");
+const compression = require("compression");
 
 ENV.config();
 
 // some constants
 const app = express();
-
 // middleware configuration
+app.use(cors());
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded());
 app.use(cookieParser());
@@ -21,10 +23,10 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // tell express to parse (read) query string nestedly from urls
-app.set("query parser","extended") 
+app.set("query parser", "extended");
 
 // project Basic routes
-allRoutes(app)
+allRoutes(app);
 
 // handel error of request on unexisted route
 app.all("/*path", (req, res, next) => {
@@ -34,4 +36,4 @@ app.all("/*path", (req, res, next) => {
 // error handlling middleware for express
 app.use(errorHandellingMiddleWare);
 
-module.exports = app
+module.exports = app;

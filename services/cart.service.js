@@ -25,8 +25,8 @@ exports.getCart = async (userId) => {
     cart = await this.createCart({ userId });
   }
   // save cart in Redis
-  let { items, totalPrice, coupon } = cart;
-  cart = { items, totalPrice, coupon };
+  let { items, totalPrice, coupon, _id } = cart;
+  cart = { items, totalPrice, coupon, _id };
   await cacheRedis(cartKey, cart);
   return cart;
 };
@@ -154,3 +154,7 @@ exports.deleteCart = async (userId) => {
   await delCache(`cart_${userId}`);
   return Cart.findOneAndDelete({ userId: userId });
 };
+
+// update cart by id
+exports.updateById = (id, updates) =>
+  Cart.findByIdAndUpdate(id, updates, { new: true, runValidators: true });

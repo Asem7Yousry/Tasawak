@@ -6,13 +6,15 @@ const cartServ = require("../services/cart.service");
 const prodServ = require("../services/product.service");
 const couponServ = require("../services/coupon.service");
 const { calcDiscountedPrice } = require("./calculate.discount");
+const { createCheckoutSession } = require("./stripe.methods");
 
 // Constants for pricing (can be moved to config later)
 const TAX_RATE = 0; // e.g., 0.1 for 10%
 const SHIPPING_COST = 20;
 
 // create order with cash payment method
-exports.checkOut = async (userId) => {
+exports.checkOut = async (req) => {
+  const userId = req.user._id;
   // get cart items
   const cart = await cartServ.getCart(userId);
   if (!cart || Object.values(cart.items).length === 0) {
@@ -137,24 +139,35 @@ exports.checkOut = async (userId) => {
   const taxPrice = totalPrice * TAX_RATE;
   totalPrice += taxPrice + SHIPPING_COST;
 
-  orderJson.subtotal = subtotal;
-  orderJson.totalAfterDiscount = totalAfterDiscount;
-  orderJson.taxPrice = taxPrice;
-  orderJson.shippingPrice = SHIPPING_COST;
-  orderJson.totalPrice = totalPrice;
-  orderJson.userId = userId;
-  orderJson.cartItems = orderItems;
+  // orderJson.subtotal = subtotal;
+  // orderJson.totalAfterDiscount = totalAfterDiscount;
+  // orderJson.taxPrice = taxPrice;
+  // orderJson.shippingPrice = SHIPPING_COST;
+  // orderJson.totalPrice = totalPrice;
+  // orderJson.userId = userId;
+  // orderJson.cartItems = orderItems;
 
-  // create order
-  const order = await Order.create(orderJson);
+  // // create order
+  // const order = await Order.create(orderJson);
 
-  // update inventory
-  await productVariation.bulkWrite(variationBulkOptions);
-  await Product.bulkWrite(productBulkOptions);
+  // // update inventory
+  // await productVariation.bulkWrite(variationBulkOptions);
+  // await Product.bulkWrite(productBulkOptions);
 
-  // cleanup
-  productIdsSet.forEach((id) => delCache(`product_${id}`));
-  await cartServ.deleteCart(userId);
+  // // cleanup
+  // productIdsSet.forEach((id) => delCache(`product_${id}`));
+  // await cartServ.deleteCart(userId);
 
-  return order;
+  // return order;
+  const name = req.user.fullName.first_name;
+  const email = req.user.email;
+  const cartId = String(cart._id);
+  const data = {
+    totalPrice,
+    name,
+    email,
+    cartId,
+  };
+  const session = await createCheckoutSession(data, req);
+  return session;
 };

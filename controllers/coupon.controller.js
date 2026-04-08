@@ -57,3 +57,15 @@ exports.applyCoupon = async (req, res) => {
     data: { cart },
   });
 };
+
+// @doc remove coupon from user cart
+// @route delete /api/cart/remove-coupon
+// @access private
+exports.removeCoupon = async (req, res) => {
+  const cart = await couponServices.removeCouponServ(req.user._id);
+  res.status(201).json({
+    success: true,
+    message: "coupon removed",
+    data: { cart },
+  });
+};
