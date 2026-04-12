@@ -15,7 +15,14 @@ const app = express();
 // middleware configuration
 app.use(cors());
 app.use(compression());
-app.use(express.json());
+// app.use(express.json());
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/order/webhook-completed') {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 app.use(express.urlencoded());
 app.use(cookieParser());
 if (process.env.NODE_ENV === "development") {

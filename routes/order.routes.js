@@ -12,6 +12,14 @@ router
   .route("/checkout")
   .post(verifyAuthentication, orderController.createOrder);
 
+// webhook for stripe checkout session
+router
+  .route("/webhook-completed")
+  .post(
+    express.raw({ type: "application/json" }),
+    orderController.webhookCheckout,
+  );
+
 // @desc routes of orders for a user
 router.route("/").get(verifyAuthentication, orderController.listMyOrders);
 
@@ -23,9 +31,8 @@ router
   .route("/admin/:orderId")
   .get(adminGuard, orderController.getOrderAdmin)
   .put(adminGuard, orderController.updateOrderAdmin);
-  
+
 // @ desc routes of getting a specific order for a user
 router.route("/:orderId").get(verifyAuthentication, orderController.getMyOrder);
-
 
 module.exports = router;

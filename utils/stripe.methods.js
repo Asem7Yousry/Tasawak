@@ -27,3 +27,27 @@ exports.createCheckoutSession = async (data, req) => {
   });
   return session;
 };
+
+// webhook handler for Stripe events (e.g., payment success)
+exports.webhookCheckout = async (req, res, next) => {
+  // debug 
+  console.log("Stripe SIGNING_SECRET:", process.env.SIGNING_SECRET);
+  console.log("Stripe req headers:", req.headers);
+  console.log("Received Stripe webhook event:", req.body);
+  let event;
+  if (process.env.SIGNING_SECRET) {
+    // Get the signature sent by Stripe
+    const signature = req.headers["stripe-signature"];
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        signature,
+        process.env.SIGNING_SECRET,
+      );
+      return res.status(200).json({ received: true });
+    } catch (err) {
+      console.log(`⚠️ Webhook signature verification failed.`, err.message);
+      return res.sendStatus(400);
+    }
+  }
+};

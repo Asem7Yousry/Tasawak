@@ -3,6 +3,7 @@ const orderAdminServ = require("../services/order.admin.service");
 const factory = require("./factoryHandler");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
+const {webhookCheckout} = require("../utils/stripe.methods");
 
 // @doc create new order by user
 // @route Post /api/order
@@ -52,3 +53,10 @@ exports.getOrderAdmin = factory.getSpecificDoc(
   "Order",
   "orderId",
 );
+
+// @doc webhook handler for Stripe events (e.g., payment success)
+// @route Post /api/order/webhook
+// @access public (Stripe will call this endpoint)
+exports.webhookCheckout = asyncHandler(async (req, res, next) => {
+  await webhookCheckout(req, res, next);
+});
