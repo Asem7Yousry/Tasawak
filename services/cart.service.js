@@ -25,8 +25,8 @@ exports.getCart = async (userId) => {
     cart = await this.createCart({ userId });
   }
   // save cart in Redis
-  let { items, totalPrice, coupon, _id } = cart;
-  cart = { items, totalPrice, coupon, _id };
+  let { items, totalPrice, coupon, _id, paymentData } = cart;
+  cart = { items, totalPrice, coupon, _id, paymentData };
   await cacheRedis(cartKey, cart);
   return cart;
 };
@@ -35,6 +35,13 @@ exports.getCart = async (userId) => {
 exports.addCartItem = async (userId, quantity, variationId, product) => {
   // get cart
   let mycart = await this.getCart(userId);
+  // check if cart has already not paied order
+  if (mycart.paymentData) {
+    throw new ApiError(
+      "You have an unpaid order. Please complete the payment before adding more items.",
+      400,
+    );
+  }
 
   // create key for product
   const productKey = getProductKey(product._id, variationId);
@@ -78,6 +85,13 @@ exports.addCartItem = async (userId, quantity, variationId, product) => {
 exports.removeCartItem = async (userId, productId, variationId) => {
   // get chached cart, if not then from DB
   let cart = await this.getCart(userId);
+  // check if cart has already not paied order
+  if (cart.paymentData) {
+    throw new ApiError(
+      "You have an unpaid order. Please complete the payment before adding more items.",
+      400,
+    );
+  }
   // Find the item inside the array
   const productKey = getProductKey(productId, variationId);
   let item = cart.items[productKey];
@@ -104,6 +118,13 @@ exports.changeCartItemQuantity = async (
   product,
 ) => {
   const cart = await this.getCart(userId);
+  // check if cart has already not paied order
+  if (cart.paymentData) {
+    throw new ApiError(
+      "You have an unpaid order. Please complete the payment before adding more items.",
+      400,
+    );
+  }
   // Find the item inside the cart items
   const productKey = getProductKey(productId, variationId);
   let item = cart.items[productKey];

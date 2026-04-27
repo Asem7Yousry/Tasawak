@@ -47,11 +47,11 @@ const orderSchema = new mongoose.Schema(
       enum: ["cach", "card"],
       default: "cach",
     },
-    isPaied: {
+    isPaid: {
       type: Boolean,
       default: false,
     },
-    paiedAt: Date,
+    paidAt: Date,
     isDelivered: {
       type: Boolean,
       default: false,
@@ -69,8 +69,13 @@ const orderSchema = new mongoose.Schema(
     discountAmount: Number, // Actual discount amount applied
     subtotal: Number, // Total before discount
     totalAfterDiscount: Number, // Total after discount but before tax/shipping
+    status: {
+      type: String,
+      enum: ["pending", "shipping", "delivered", "cancelled"],
+      default: "pending",
+    },
   },
-  { timestamps: true },
+  { timestamps: true, strict: false },
 );
 
 module.exports = mongoose.model("Order", orderSchema);

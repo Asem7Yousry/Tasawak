@@ -11,6 +11,7 @@ exports.createDoc = (service) =>
         document: newDocument,
       });
     } catch (error) {
+      console.log(error);
       if (error.code === 11000) {
         // duplicate mongo error
         return next(new ApiError(`document data already exists`, 409));

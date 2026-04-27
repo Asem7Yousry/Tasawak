@@ -55,7 +55,7 @@ exports.getOrderAdmin = factory.getSpecificDoc(
 );
 
 // @doc webhook handler for Stripe events (e.g., payment success)
-// @route Post /api/order/webhook
+// @route Post /api/order/webhook-completed
 // @access public (Stripe will call this endpoint)
 exports.webhookCheckout = asyncHandler(async (req, res, next) => {
   await webhookCheckout(req, res, next);

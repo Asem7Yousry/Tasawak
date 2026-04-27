@@ -1,53 +1,80 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const Order = require("../models/order.Model");
+const { Product, productVariation } = require("../models/productModel");
+const { getCache, delCache } = require("./redis.methods");
+const cartServ = require("../services/cart.service");
+
+// create a paymentIntent with Stripe API
+exports.createPaymentIntent = async (amount) => {
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: amount * 100, // Convert to cents
+    currency: "egp",
+  });
+  return paymentIntent;
+};
 
 // Create a Stripe Checkout session
 exports.createCheckoutSession = async (data, req) => {
+  const frontendUrl =
+    process.env.FRONTEND_URL || `${req.protocol}://${req.get("host")}`;
+  const successUrlPath = process.env.CHECKOUT_SUCCESS_PATH || "/api/order";
+  const cancelUrlPath = process.env.CHECKOUT_CANCEL_PATH || "/api/cart/my-cart";
   const session = await stripe.checkout.sessions.create({
-    // line_items: lineItems,
-    line_items: [
-      {
-        price_data: {
-          currency: "egp",
-          product_data: {
-            name: data.name,
-          },
-          unit_amount: data.totalPrice * 100, // Convert to cents
-        },
-        quantity: 1,
-      },
-    ],
+    payment_method_types: ["card"],
+    line_items: data.line_items,
     mode: "payment",
-    success_url: `${req.protocol}://${req.get("host")}/api/order`,
-    cancel_url: `${req.protocol}://${req.get("host")}/api/cart/my-cart`,
-    customer_email: data.email, // Optional: pre-fill the customer's email
-    client_reference_id: data.cartId, // Optional: attach order ID for later reference
-    // metadata: {
-    //   shippingAddress: data.shippingAddress, // Optional: attach shipping address for later reference
-    // },
+    success_url: `${frontendUrl}${successUrlPath}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${frontendUrl}${cancelUrlPath}`,
+    client_reference_id: data.orderId,
+    customer_email: req.user.email,
   });
   return session;
 };
 
+exports.handleEvent = async (event) => {
+  const { type, data } = event;
+  const object = data.object;
+
+  switch (type) {
+    case "checkout.session.completed": {
+      const orderId = object["client_reference_id"];
+      let order = await Order.findByIdAndUpdate(
+        orderId,
+        { isPaid: true, paidAt: new Date(), status: "shipping" },
+        { new: true },
+      );
+      await delCache(`pendingOrder_${orderId}`);
+      await cartServ.deleteCart(order.userId);
+      break;
+    }
+    default:
+      console.log(`Unhandled event type: ${type}`);
+  }
+};
+
 // webhook handler for Stripe events (e.g., payment success)
 exports.webhookCheckout = async (req, res, next) => {
-  // debug 
-  console.log("Stripe SIGNING_SECRET:", process.env.SIGNING_SECRET);
-  console.log("Stripe req headers:", req.headers);
-  console.log("Received Stripe webhook event:", req.body);
+  // check if signing secret is configured
+  const SigningSecret =
+    process.env.SIGNING_SECRET || process.env.LOCAL_SIGNING_SECRET;
   let event;
-  if (process.env.SIGNING_SECRET) {
-    // Get the signature sent by Stripe
+  if (SigningSecret) {
+    // check the signature sent by Stripe for authentication
     const signature = req.headers["stripe-signature"];
     try {
       event = stripe.webhooks.constructEvent(
         req.body,
         signature,
-        process.env.SIGNING_SECRET,
+        SigningSecret,
       );
-      return res.status(200).json({ received: true });
     } catch (err) {
       console.log(`⚠️ Webhook signature verification failed.`, err.message);
-      return res.sendStatus(400);
+      return res
+        .status(400)
+        .json({ error: "Webhook signature verification failed." });
     }
+    // Handle the event based on type
+    await this.handleEvent(event);
+    return res.status(200).json({ received: true });
   }
 };
