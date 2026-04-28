@@ -27,6 +27,7 @@ exports.createCheckoutSession = async (data, req) => {
     cancel_url: `${frontendUrl}${cancelUrlPath}`,
     client_reference_id: data.orderId,
     customer_email: req.user.email,
+    shipping_options: [{ shipping_rate: data.shippingId }],
   });
   return session;
 };

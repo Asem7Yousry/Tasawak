@@ -40,7 +40,7 @@ const addressSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    fullAddress: {
+    notes: {
       type: String,
       trim: true,
     },
@@ -89,6 +89,8 @@ userSchema.pre("save", async function () {
   // password hashing
   if (this.isNew) {
     this.password = await bcrypt.hash(this.password, 4);
+    this.address.city = this.address.city.trim().replace(/\s+/g, "-").toLowerCase();
+    this.address.areaName = this.address.areaName.trim().replace(/\s+/g, "-").toLowerCase();
   }
 });
 

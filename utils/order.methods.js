@@ -6,6 +6,7 @@ const prodServ = require("../services/product.service");
 const couponServ = require("../services/coupon.service");
 const { calcDiscountedPrice } = require("./calculate.discount");
 const Order = require("../models/order.Model");
+const ShippingRate = require("../models/shipping.cost.model");
 const { saveCartJob } = require("../utils/queues");
 const {
   createCheckoutSession,
@@ -14,7 +15,26 @@ const {
 
 // Constants for pricing (can be moved to config later)
 const TAX_RATE = 0; // e.g., 0.1 for 10%
-const SHIPPING_COST = 0;
+
+// calculate shipping cost based on location
+exports.getShippingCost = async (req) => {
+  const address = req.body?.address || req.user.address;
+  if (!address || !address.city || !address.areaName) {
+    throw new ApiError(
+      "please add address first to calculate shipping cost",
+      400,
+    );
+  }
+  const city = address.city.trim().replace(/\s+/g, "-").toLowerCase();
+  const area = address.areaName.trim().replace(/\s+/g, "-").toLowerCase();
+  const shippingRate = await ShippingRate.findOne({
+    $or: [{ city, area }, { city }, { city: "default" }],
+  });
+  return {
+    shippingId: shippingRate.stripeShippingRateId,
+    SHIPPING_COST: shippingRate.cost,
+  };
+};
 
 const pushObject = function (bulkOptions, optionId, item, field, factor = -1) {
   const change = factor * item.quantity;
@@ -114,7 +134,7 @@ const mapOrderToResponse = async (req, cart) => {
         currency: "egp",
         product_data: {
           name: item.productName,
-          description: `Variation ID: ${variationId}, color: ${Variation.attribute.color}`,
+          description: `color: ${Variation.attribute.color || "N/A"}, size: ${Variation.attribute.size || "N/A"}`,
         },
         unit_amount: Variation.piecePrice * 100, // Convert to cents
       },
@@ -161,6 +181,7 @@ const mapOrderToResponse = async (req, cart) => {
 
 // method to calculate total price with discounts, taxes, and shipping
 const calculateTotalPrice = async (
+  SHIPPING_COST,
   userId,
   orderItems,
   cart,
@@ -214,6 +235,7 @@ exports.checkOut = async (req) => {
   if (!mycart || Object.values(mycart.items).length === 0) {
     throw new ApiError("no cart found", 404);
   }
+  const { shippingId, SHIPPING_COST } = await this.getShippingCost(req);
   let data;
   if (!mycart.paymentData) {
     // map order data to response format and validate
@@ -231,7 +253,8 @@ exports.checkOut = async (req) => {
 
     // calculate total price with discounts, taxes, and shipping
     let orderJson = await calculateTotalPrice(
-      req.user._id,
+      SHIPPING_COST,
+      userId,
       orderItems,
       cart,
       totalPrice,
@@ -253,6 +276,7 @@ exports.checkOut = async (req) => {
     data = {
       line_items,
       orderId: order._id.toString(),
+      shippingId,
     };
     cart.paymentData = data;
     await cacheRedis(`cart_${userId}`, cart);
