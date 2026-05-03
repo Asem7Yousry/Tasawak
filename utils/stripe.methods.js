@@ -3,14 +3,33 @@ const Order = require("../models/order.Model");
 const { Product, productVariation } = require("../models/productModel");
 const { getCache, delCache } = require("./redis.methods");
 const cartServ = require("../services/cart.service");
+const ApiError = require("./ApiError");
 
 // create a paymentIntent with Stripe API
-exports.createPaymentIntent = async (amount) => {
+exports.createPaymentIntent = async (data) => {
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: amount * 100, // Convert to cents
-    currency: "egp",
+    amount: data.totalAmount * 100,
+    currency: data.currency,
+    automatic_payment_methods: { enabled: true },
+    metadata: { orderId: data.orderId, isDelivered: false },
   });
   return paymentIntent;
+};
+
+// success payment handler for Stripe payment
+exports.handlePaymentSuccess = async (object) => {
+  const orderId = object?.client_reference_id || object.metadata.orderId;
+  let order = await Order.findByIdAndUpdate(
+    orderId,
+    {
+      isPaid: true,
+      paidAt: new Date(),
+      status: "shipping",
+      paymentId: object.id,
+    },
+    { new: true },
+  );
+  await cartServ.deleteCart(order.userId.toString());
 };
 
 // Create a Stripe Checkout session
@@ -28,28 +47,26 @@ exports.createCheckoutSession = async (data, req) => {
     client_reference_id: data.orderId,
     customer_email: req.user.email,
     shipping_options: [{ shipping_rate: data.shippingId }],
+    // meta data saved in payment transaction in Stripe dashboard
+    payment_intent_data: {
+      metadata: { orderId: data.orderId, isDelivered: false },
+    },
   });
   return session;
 };
 
-exports.handleEvent = async (event) => {
+exports.handleEventType = async (event) => {
   const { type, data } = event;
   const object = data.object;
 
   switch (type) {
-    case "checkout.session.completed": {
-      const orderId = object["client_reference_id"];
-      let order = await Order.findByIdAndUpdate(
-        orderId,
-        { isPaid: true, paidAt: new Date(), status: "shipping" },
-        { new: true },
-      );
-      await delCache(`pendingOrder_${orderId}`);
-      await cartServ.deleteCart(order.userId);
+    case "payment_intent.succeeded": {
+      await this.handlePaymentSuccess(object);
       break;
     }
     default:
       console.log(`Unhandled event type: ${type}`);
+      break;
   }
 };
 
@@ -75,7 +92,49 @@ exports.webhookCheckout = async (req, res, next) => {
         .json({ error: "Webhook signature verification failed." });
     }
     // Handle the event based on type
-    await this.handleEvent(event);
+    await this.handleEventType(event);
     return res.status(200).json({ received: true });
+  }
+};
+
+//// for shipping rates management ////
+exports.createShippingRate = async (city, area, cost, currency) => {
+  try {
+    const shippingRate = await stripe.shippingRates.create({
+      display_name: `${city} - ${area}`,
+      type: "fixed_amount",
+      fixed_amount: {
+        amount: cost * 100,
+        currency: currency || "egp",
+      },
+      metadata: {
+        city: city,
+        area: area,
+      },
+    });
+    return shippingRate;
+  } catch (err) {
+    console.log(err);
+    throw new ApiError(
+      `Failed to create Stripe shipping rate: ${err.message}`,
+      500,
+    );
+  }
+};
+
+exports.archiveShippingRate = async (stripeShippingRateId) => {
+  try {
+    const archivedRate = await stripe.shippingRates.update(
+      stripeShippingRateId,
+      {
+        active: false,
+      },
+    );
+    return archivedRate;
+  } catch (err) {
+    throw new ApiError(
+      `Failed to archive Stripe shipping rate: ${err.message}`,
+      500,
+    );
   }
 };

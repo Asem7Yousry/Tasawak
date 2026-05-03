@@ -26,7 +26,13 @@ exports.getCart = async (userId) => {
   }
   // save cart in Redis
   let { items, totalPrice, coupon, _id, paymentData } = cart;
-  cart = { items, totalPrice, coupon, _id, paymentData };
+  cart = {
+    items,
+    totalPrice,
+    coupon,
+    _id,
+    paymentData,
+  };
   await cacheRedis(cartKey, cart);
   return cart;
 };

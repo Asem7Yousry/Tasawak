@@ -47,6 +47,7 @@ const orderSchema = new mongoose.Schema(
       enum: ["cach", "card"],
       default: "cach",
     },
+    paymentId: String,
     isPaid: {
       type: Boolean,
       default: false,

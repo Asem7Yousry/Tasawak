@@ -33,6 +33,7 @@ exports.getShippingCost = async (req) => {
   return {
     shippingId: shippingRate.stripeShippingRateId,
     SHIPPING_COST: shippingRate.cost,
+    address,
   };
 };
 
@@ -99,7 +100,8 @@ const mapOrderToResponse = async (req, cart) => {
       price: Variation.piecePrice,
       quantity: item.quantity,
     });
-    totalPrice += item.quantity * Variation.piecePrice;
+    let cost = item.quantity * Variation.piecePrice;
+    totalPrice += cost;
 
     variationSellBulkOptions = pushObject(
       variationSellBulkOptions,
@@ -139,6 +141,11 @@ const mapOrderToResponse = async (req, cart) => {
         unit_amount: Variation.piecePrice * 100, // Convert to cents
       },
       quantity: item.quantity,
+      metadata: {
+        productId,
+        variationId,
+        cost: cost * 100,
+      },
     });
   }
 
@@ -193,7 +200,6 @@ const calculateTotalPrice = async (
   // apply coupon if exists
   const subtotal = totalPrice; // Total before any discounts and taxes
   let discountAmount = 0;
-  let discountType = null;
   let couponCode = cart.coupon;
   if (couponCode) {
     couponCode = await couponServ.getByCode(couponCode);
@@ -201,11 +207,10 @@ const calculateTotalPrice = async (
       const originalTotal = totalPrice;
       totalPrice = calcDiscountedPrice(totalPrice, couponCode);
       discountAmount = originalTotal - totalPrice;
-      discountType = couponCode.type;
 
       orderJson.couponApplied = couponCode._id;
       orderJson.couponDiscount = couponCode.discount;
-      orderJson.discountType = discountType;
+      orderJson.discountType = couponCode.type;
       orderJson.discountAmount = discountAmount;
     }
   }
@@ -224,10 +229,23 @@ const calculateTotalPrice = async (
   orderJson.cartItems = orderItems;
   orderJson.variationRefundBulkOptions = variationRefundBulkOptions;
   orderJson.productRefundBulkOptions = productRefundBulkOptions;
-  return orderJson;
+  const PRICES = {
+    subtotal: orderJson.subtotal,
+    discountData: {
+      couponApplied: couponCode?.code,
+      couponDiscount: orderJson.couponDiscount,
+      discountType: orderJson.discountType,
+      discountAmount: orderJson.discountAmount,
+      priceAfterDiscount: orderJson.totalAfterDiscount,
+    },
+    taxPrice: orderJson.taxPrice,
+    shippingPrice: SHIPPING_COST,
+    totalPrice: orderJson.totalPrice,
+  };
+  return { orderJson, PRICES };
 };
 
-// create order with cash payment method
+// create order with different payment methods
 exports.checkOut = async (req) => {
   const userId = req.user._id;
   // get cart items
@@ -235,7 +253,8 @@ exports.checkOut = async (req) => {
   if (!mycart || Object.values(mycart.items).length === 0) {
     throw new ApiError("no cart found", 404);
   }
-  const { shippingId, SHIPPING_COST } = await this.getShippingCost(req);
+  const { shippingId, SHIPPING_COST, address } =
+    await this.getShippingCost(req);
   let data;
   if (!mycart.paymentData) {
     // map order data to response format and validate
@@ -252,7 +271,7 @@ exports.checkOut = async (req) => {
     } = await mapOrderToResponse(req, mycart);
 
     // calculate total price with discounts, taxes, and shipping
-    let orderJson = await calculateTotalPrice(
+    let { orderJson, PRICES } = await calculateTotalPrice(
       SHIPPING_COST,
       userId,
       orderItems,
@@ -264,7 +283,7 @@ exports.checkOut = async (req) => {
 
     orderJson.paymentMethod = req.headers["paymentmethod"] || "cach";
     // create order and update product quantities and sold counts in bulk
-    const order = await Order.create(orderJson);
+    let order = await Order.create(orderJson);
     await productVariation.bulkWrite(variationSellBulkOptions);
     await Product.bulkWrite(productSellBulkOptions);
 
@@ -272,11 +291,15 @@ exports.checkOut = async (req) => {
     await Promise.all(
       [...productIdsSet].map((id) => delCache(`product_${id}`)),
     );
-    // create payment data needed for Stripe checkout session and cache it
+    // create payment data needed for Stripe checkout session/paymentIntent and cache it
     data = {
       line_items,
       orderId: order._id.toString(),
       shippingId,
+      totalAmount: orderJson.totalPrice,
+      currency: req.headers["currency"] || "egp",
+      prices: PRICES,
+      shippingAdress: address,
     };
     cart.paymentData = data;
     await cacheRedis(`cart_${userId}`, cart);
@@ -284,16 +307,21 @@ exports.checkOut = async (req) => {
   } else {
     data = mycart.paymentData;
   }
-  switch (req.headers["paymentmethod"]) {
-    case "card":
-      // Handle card payment
+  switch (req.headers["paymentobject"]) {
+    case "session":
       const session = await createCheckoutSession(data, req);
       return session;
+    case "paymentintent":
+      const paymentIntent = await createPaymentIntent(data);
+      return {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        items: data.line_items,
+        prices: data.prices,
+        address: data.shippingAdress,
+      };
     default:
-      cartserv.deleteCart(userId); // Clear cart for cash payment
+      await cartServ.deleteCart(userId); // Clear cart for cash payment
       return order; // For cash payment, return the created order details
   }
-
-  // const paymentIntent = await createPaymentIntent(totalPrice);
-  // return paymentIntent;
 };
