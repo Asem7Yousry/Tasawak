@@ -35,4 +35,10 @@ router
 // @ desc routes of getting a specific order for a user
 router.route("/:orderId").get(verifyAuthentication, orderController.getMyOrder);
 
+// @ desc routes to refund an order
+router
+  .route("/:orderId/refund")
+  .post(verifyAuthentication, orderController.refundOrder);
+router.route("/refund").post(adminGuard, orderController.refundOrders);
+
 module.exports = router;

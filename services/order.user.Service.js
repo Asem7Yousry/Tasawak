@@ -2,6 +2,9 @@ const Order = require("../models/order.Model");
 const { QueryListing } = require("../utils/queryListing");
 const { checkOut } = require("../utils/order.methods");
 const ApiError = require("../utils/apiError");
+const { bulkWrite } = require("../utils/global.utils");
+const { Product, productVariation } = require("../models/productModel");
+const { refundPayment } = require("../utils/stripe.methods");
 
 // create order with cash payment method
 exports.create = async (req) => {
@@ -24,6 +27,23 @@ exports.getMyOrder = async (req) => {
   });
   if (!order) {
     throw new ApiError("not permitted", 403);
+  }
+  return order;
+};
+
+// cancel order
+exports.cancelOrder = async (req) => {
+  const order = await Order.findOneAndUpdate(
+    {
+      _id: req.params["orderId"],
+      userId: req.user._id,
+      status: { $nin: ["canceled", "delivered"] },
+    },
+    { status: "canceled" },
+    { new: true },
+  );
+  if (!order) {
+    throw new ApiError("order can't be canceled", 404);
   }
   return order;
 };

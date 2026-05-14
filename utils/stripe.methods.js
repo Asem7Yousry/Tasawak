@@ -138,3 +138,37 @@ exports.archiveShippingRate = async (stripeShippingRateId) => {
     );
   }
 };
+
+exports.refundPayment = async (paymentId, amount) => {
+  try {
+    const refund = await stripe.refunds.create({
+      payment_intent: paymentId,
+      amount: amount * 100, // Stripe expects amount in cents
+    });
+    return refund;
+  } catch (err) {
+    throw new ApiError(`Failed to refund payment: ${err.message}`, 500);
+  }
+};
+
+exports.refundAllPayment = async () => {
+  try {
+    for await (const payment of stripe.paymentIntents.list({
+      limit: 100,
+      expand: ["data.latest_charge"],
+    })) {
+      if (
+        payment.latest_charge?.amount_refunded <
+          payment.latest_charge?.amount &&
+        payment.metadata?.isDelivered == "false"
+      ) {
+        await this.refundPayment(
+          payment.id,
+          payment.latest_charge?.amount / 100,
+        );
+      }
+    }
+  } catch (error) {
+    throw new ApiError(`Failed to refund payment: ${error.message}`, 500);
+  }
+};

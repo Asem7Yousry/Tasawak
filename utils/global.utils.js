@@ -11,3 +11,9 @@ exports.checkDuplicate = async (Model, criteria, errorMessage) => {
     throw new ApiError(errorMessage, 409);
   }
 };
+
+// bulk Write helper function
+exports.bulkWrite = async (Model, operations) => {
+  if (!operations.length) return;
+  await Model.bulkWrite(operations);
+};
