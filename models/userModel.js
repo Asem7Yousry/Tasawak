@@ -81,6 +81,8 @@ const userSchema = new mongoose.Schema(
     passWordOTP: String,
     passwordResetExpires: Date,
     passwordResetVerified: Boolean,
+    // Stripe customer ID for payment processing
+    stripeCustomerId: String,
   },
   { timestamps: true },
 );

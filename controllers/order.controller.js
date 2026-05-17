@@ -3,7 +3,11 @@ const orderAdminServ = require("../services/order.admin.service");
 const factory = require("./factoryHandler");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
-const { webhookCheckout, refundPayment } = require("../utils/stripe.methods");
+const {
+  webhookCheckout,
+  refundPayment,
+  test,
+} = require("../utils/stripe.methods");
 
 // @doc create new order by user
 // @route Post /api/order
@@ -90,6 +94,38 @@ exports.refundOrders = asyncHandler(async (req, res, next) => {
       data: null,
     });
   } catch (error) {
+    return next(new ApiError(error.message, error.statusCode));
+  }
+});
+
+// @doc sucscription
+// @route Post /api/order/subscription
+// @access private
+exports.sucscription = asyncHandler(async (req, res, next) => {
+  try {
+    const subSession = await orderServ.subscription(req);
+    res.status(200).json({
+      success: true,
+      message: "done",
+      data: subSession,
+    });
+  } catch (error) {
+    console.log(error);
+    return next(new ApiError(error.message, error.statusCode));
+  }
+});
+
+// test
+exports.test = asyncHandler(async (req, res, next) => {
+  try {
+    const paymentIntent = await test(req.body.paymentId);
+    res.status(200).json({
+      success: true,
+      message: "done",
+      data: null,
+    });
+  } catch (error) {
+    console.log(error);
     return next(new ApiError(error.message, error.statusCode));
   }
 });

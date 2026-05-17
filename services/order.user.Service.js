@@ -4,7 +4,7 @@ const { checkOut } = require("../utils/order.methods");
 const ApiError = require("../utils/apiError");
 const { bulkWrite } = require("../utils/global.utils");
 const { Product, productVariation } = require("../models/productModel");
-const { refundPayment } = require("../utils/stripe.methods");
+const { refundPayment, subscription } = require("../utils/stripe.methods");
 
 // create order with cash payment method
 exports.create = async (req) => {
@@ -46,4 +46,10 @@ exports.cancelOrder = async (req) => {
     throw new ApiError("order can't be canceled", 404);
   }
   return order;
+};
+
+// subscription
+exports.subscription = async (req) => {
+  const subSession = await subscription(req);
+  return subSession;
 };

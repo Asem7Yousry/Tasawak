@@ -26,6 +26,11 @@ router.route("/").get(verifyAuthentication, orderController.listMyOrders);
 // @ desc routes of listting all orders for admin
 router.route("/admin").get(adminGuard, orderController.listAdminOrders);
 
+// @ desc routes of listting all orders for admin
+router.route("/sub").post(verifyAuthentication, orderController.sucscription);
+
+router.route("/test").post(verifyAuthentication, orderController.test);
+
 // @ desc routes of get or update specific order for admin
 router
   .route("/admin/:orderId")

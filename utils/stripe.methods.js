@@ -172,3 +172,115 @@ exports.refundAllPayment = async () => {
     throw new ApiError(`Failed to refund payment: ${error.message}`, 500);
   }
 };
+
+/// for subscription management ///
+exports.createCustomer = async (email) => {
+  try {
+    const customer = await stripe.customers.create({
+      email: email,
+    });
+    return customer;
+  } catch (err) {
+    throw new ApiError(`Failed to create Stripe customer: ${err.message}`, 500);
+  }
+};
+
+exports.createProduct = async (name, description) => {
+  try {
+    const product = await stripe.products.create({
+      name: name,
+      description: description,
+    });
+    return product;
+  } catch (err) {
+    throw new ApiError(`Failed to create Stripe product: ${err.message}`, 500);
+  }
+};
+
+exports.createPrice = async (
+  productId,
+  unitAmount,
+  currency,
+  interval,
+  interval_count,
+) => {
+  try {
+    const priceData = {
+      product: productId,
+      unit_amount: unitAmount * 100,
+      currency: currency || "egp",
+    };
+    // Add recurring only if interval exists
+    if (interval) {
+      priceData.recurring = {
+        interval,
+        interval_count: interval_count || 1,
+      };
+    }
+    const price = await stripe.prices.create(priceData);
+    return price;
+  } catch (err) {
+    throw new ApiError(`Failed to create Stripe price: ${err.message}`, 500);
+  }
+};
+
+exports.archivePrice = async (stripePriceId) => {
+  try {
+    const archivedPrice = await stripe.prices.update(stripePriceId, {
+      active: false,
+    });
+    return archivedPrice;
+  } catch (err) {
+    throw new ApiError(`Failed to archive Stripe price: ${err.message}`, 500);
+  }
+};
+
+exports.archiveProduct = async (stripeProductId) => {
+  try {
+    const archivedProduct = await stripe.products.update(stripeProductId, {
+      active: false,
+    });
+    return archivedProduct;
+  } catch (err) {
+    throw new ApiError(`Failed to archive Stripe product: ${err.message}`, 500);
+  }
+};
+
+exports.updateProduct = async (stripeProductId, updateData) => {
+  await stripe.products.update(stripeProductId, updateData);
+};
+
+exports.subscription = async (req) => {
+  const frontendUrl =
+    process.env.FRONTEND_URL || `${req.protocol}://${req.get("host")}`;
+  const successUrlPath = process.env.CHECKOUT_SUCCESS_PATH || "/api/order";
+  const cancelUrlPath = process.env.CHECKOUT_CANCEL_PATH || "/api/cart/my-cart";
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    line_items: [
+      // {
+      //   price: "price_1TXPBmCou4nVappn7aYJZb7y",
+      //   quantity: 1,
+      // },
+      {
+        price: "price_1TXNBgCou4nVappntnKUK6Ki",
+        quantity: 1,
+      },
+    ],
+    success_url: `${frontendUrl}${successUrlPath}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${frontendUrl}${cancelUrlPath}`,
+    customer: req.user.stripeCustomerId,
+    // customer_email: req.user.email,
+  });
+  return session;
+};
+
+exports.test = async (paymentId) => {
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentId);
+  // console.log("paymentIntent:");
+  // console.log(paymentIntent);
+  const charge = await stripe.charges.retrieve(paymentIntent.latest_charge);
+  console.log("charge:");
+  console.log(charge);
+  // return paymentIntent;
+};

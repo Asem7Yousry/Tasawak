@@ -8,6 +8,7 @@ const cartRout = require("../routes/cartRoutes");
 const couponRout = require("../routes/coupon.Routes");
 const orderRout = require("../routes/order.routes");
 const shippingCost = require("../routes/shipping.cost.Routes");
+const plansRoutes = require("../routes/plan.routes");
 
 const allRoutes = (app) => {
   app.use("/api/category", categoryRout);
@@ -19,6 +20,7 @@ const allRoutes = (app) => {
   app.use("/api/coupon", couponRout);
   app.use("/api/order", orderRout);
   app.use("/api/shipping-cost", shippingCost);
+  app.use("/api/plans", plansRoutes);
 };
 
 module.exports = allRoutes;
