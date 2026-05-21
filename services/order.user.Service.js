@@ -4,7 +4,7 @@ const { checkOut } = require("../utils/order.methods");
 const ApiError = require("../utils/apiError");
 const { bulkWrite } = require("../utils/global.utils");
 const { Product, productVariation } = require("../models/productModel");
-const { refundPayment, subscription } = require("../utils/stripe.methods");
+const { subscription } = require("../utils/stripe.methods");
 
 // create order with cash payment method
 exports.create = async (req) => {
@@ -20,11 +20,10 @@ exports.list = async (req) => {
 };
 
 // get specific order for a user
-exports.getMyOrder = async (req) => {
-  const order = await Order.findOne({
-    _id: req.params["orderId"],
-    userId: req.user._id,
-  });
+exports.getMyOrder = async (req, searchData = {}) => {
+  searchData._id = req.params["orderId"];
+  searchData.userId = req.user._id;
+  const order = await Order.findOne(searchData);
   if (!order) {
     throw new ApiError("not permitted", 403);
   }
@@ -32,14 +31,10 @@ exports.getMyOrder = async (req) => {
 };
 
 // cancel order
-exports.cancelOrder = async (req) => {
+exports.cancelOrder = async (orderId) => {
   const order = await Order.findOneAndUpdate(
-    {
-      _id: req.params["orderId"],
-      userId: req.user._id,
-      status: { $nin: ["canceled", "delivered"] },
-    },
-    { status: "canceled" },
+    { _id: orderId },
+    { status: "canceled", canceledAt: new Date() },
     { new: true },
   );
   if (!order) {

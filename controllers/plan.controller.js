@@ -48,7 +48,7 @@ exports.updateSpecificPlanCost = asyncHandler(async (req, res) => {
   const updatedCost = await planServices.updatePrice(
     req.params.planID,
     req.params.costID,
-    req.body
+    req.body,
   );
   res.status(200).json({ status: "success", data: updatedCost });
 });
@@ -73,4 +73,16 @@ exports.createPlanCost = asyncHandler(async (req, res) => {
     req.body,
   );
   res.status(201).json({ status: "success", data: newCost });
+});
+
+// @doc create new subscription to specific plan cost by ID
+// @route post /api/plan/:planID/costs/:costID/subscribe
+// @access private (authenticated users)
+exports.subscribeToPlanCost = asyncHandler(async (req, res) => {
+  const session = await planServices.subscribeToPlanCost(
+    req,
+    req.params.planID,
+    req.params.costID,
+  );
+  res.status(200).json({ status: "success", data: session });
 });

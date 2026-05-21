@@ -3,11 +3,9 @@ const orderAdminServ = require("../services/order.admin.service");
 const factory = require("./factoryHandler");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
-const {
-  webhookCheckout,
-  refundPayment,
-  test,
-} = require("../utils/stripe.methods");
+// const { webhookCheckout, test } = require("../utils/stripe.methods");
+const eventHandler = require("../utils/stripe_utils/eventHandler.stripe");
+const stripeRefund = require("../utils/stripe_utils/refund.stripe");
 
 // @doc create new order by user
 // @route Post /api/order
@@ -62,7 +60,7 @@ exports.getOrderAdmin = factory.getSpecificDoc(
 // @route Post /api/order/webhook-completed
 // @access public (Stripe will call this endpoint)
 exports.webhookCheckout = asyncHandler(async (req, res, next) => {
-  await webhookCheckout(req, res, next);
+  await eventHandler.checkEvent(req, res);
 });
 
 // @doc refund order
@@ -70,8 +68,14 @@ exports.webhookCheckout = asyncHandler(async (req, res, next) => {
 // @access private
 exports.refundOrder = asyncHandler(async (req, res, next) => {
   try {
-    const order = await orderServ.cancelOrder(req);
-    const refund = await refundPayment(order.paymentId, order.totalPrice);
+    const order = await orderServ.getMyOrder(req, {
+      status: { $nin: ["canceled", "delivered"] },
+      paymentId: { $ne: null },
+    });
+    const refund = await stripeRefund.refundPayment(
+      order.paymentId,
+      order.totalPrice,
+    );
     res.status(200).json({
       success: true,
       message: "Order refunded successfully",
@@ -101,7 +105,7 @@ exports.refundOrders = asyncHandler(async (req, res, next) => {
 // @doc sucscription
 // @route Post /api/order/subscription
 // @access private
-exports.sucscription = asyncHandler(async (req, res, next) => {
+exports.subscription = asyncHandler(async (req, res, next) => {
   try {
     const subSession = await orderServ.subscription(req);
     res.status(200).json({

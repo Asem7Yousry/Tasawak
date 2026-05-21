@@ -27,9 +27,7 @@ router.route("/").get(verifyAuthentication, orderController.listMyOrders);
 router.route("/admin").get(adminGuard, orderController.listAdminOrders);
 
 // @ desc routes of listting all orders for admin
-router.route("/sub").post(verifyAuthentication, orderController.sucscription);
-
-router.route("/test").post(verifyAuthentication, orderController.test);
+router.route("/sub").post(verifyAuthentication, orderController.subscription);
 
 // @ desc routes of get or update specific order for admin
 router
@@ -40,10 +38,11 @@ router
 // @ desc routes of getting a specific order for a user
 router.route("/:orderId").get(verifyAuthentication, orderController.getMyOrder);
 
-// @ desc routes to refund an order
+// @ desc routes to refund order
 router
   .route("/:orderId/refund")
   .post(verifyAuthentication, orderController.refundOrder);
+
 router.route("/refund").post(adminGuard, orderController.refundOrders);
 
 module.exports = router;

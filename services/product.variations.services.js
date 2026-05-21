@@ -28,3 +28,5 @@ exports.updateById = (productVariationId, updates) => {
 exports.deleteById = async (productVariationId) => {
   return productVariation.findOneAndDelete({ _id: productVariationId });
 };
+
+exports.bulkWrite = (operations) => productVariation.bulkWrite(operations);

@@ -2,10 +2,7 @@ const ShippingCost = require("../models/shipping.cost.model");
 const { QueryListing } = require("../utils/queryListing");
 const ApiError = require("../utils/apiError");
 const { chainWords, checkDuplicate } = require("../utils/global.utils");
-const {
-  createShippingRate,
-  archiveShippingRate,
-} = require("../utils/stripe.methods");
+const stripeShippingCost = require("../utils/stripe_utils/shippingCost.stripe");
 
 // create ShippingCost
 exports.create = async (req) => {
@@ -23,10 +20,10 @@ exports.create = async (req) => {
     city,
     area,
     cost: Number(req.body.cost),
-    currency: req.body.currency,
+    currency: req.body.currency || "egp",
   };
-  console.log(dataToCreate);
-  const stripeShippingRate = await createShippingRate(dataToCreate);
+  const stripeShippingRate =
+    await stripeShippingCost.createShippingRate(dataToCreate);
   const shippingCost = await ShippingCost.create({
     ...dataToCreate,
     stripeShippingRateId: stripeShippingRate.id,
@@ -44,7 +41,7 @@ exports.getById = (id) => ShippingCost.findById(id);
 
 exports.updateById = async (id, updates) => {
   // check if exists
-  let oldShippingCost = await ShippingCost.findById(id);
+  let oldShippingCost = await this.getById(id);
   if (!oldShippingCost) throw new ApiError("Shipping cost not found", 404);
   // normalizze incoming city and area for comparison and duplication check
   const city = updates?.city ? chainWords(updates.city) : oldShippingCost.city;
@@ -57,13 +54,17 @@ exports.updateById = async (id, updates) => {
     );
   }
   // archive old shipping rate in Stripe and create new shipping rate
-  await archiveShippingRate(oldShippingCost.stripeShippingRateId);
-  const newStripeShippingRate = await createShippingRate(
+  await stripeShippingCost.archiveShippingRate(
+    oldShippingCost.stripeShippingRateId,
+  );
+  const shippingRateData = {
     city,
     area,
-    updates.cost || oldShippingCost.cost,
-    updates.currency || oldShippingCost.currency,
-  );
+    cost: updates.cost || oldShippingCost.cost,
+    currency: updates.currency || oldShippingCost.currency,
+  };
+  const newStripeShippingRate =
+    await stripeShippingCost.createShippingRate(shippingRateData);
   // update shipping cost in database
   const updatedShippingCost = await ShippingCost.findByIdAndUpdate(
     id,
@@ -75,11 +76,10 @@ exports.updateById = async (id, updates) => {
 
 exports.deleteAll = async () => {
   let allShippingCosts = await ShippingCost.find({});
-  console.log(allShippingCosts.length);
   if (!allShippingCosts.length) return;
   await Promise.all(
     allShippingCosts.map((cost) =>
-      archiveShippingRate(cost.stripeShippingRateId),
+      stripeShippingCost.archiveShippingRate(cost.stripeShippingRateId),
     ),
   );
   return ShippingCost.deleteMany({});
@@ -88,7 +88,9 @@ exports.deleteAll = async () => {
 exports.deleteById = async (id) => {
   const shippingCost = await ShippingCost.findById(id);
   if (!shippingCost) throw new ApiError("Shipping rate not found", 404);
-  await archiveShippingRate(shippingCost.stripeShippingRateId);
+  await stripeShippingCost.archiveShippingRate(
+    shippingCost.stripeShippingRateId,
+  );
   await shippingCost.deleteOne();
   return shippingCost;
 };

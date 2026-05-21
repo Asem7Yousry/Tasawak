@@ -49,4 +49,9 @@ router.route("/:planID/costs/:costID").get(planServ.getSpecificCost).put(
 //   planServ.deleteSpecificPlan,
 // );
 
+// @desc route for subscription to specific plan cost by id
+router
+  .route("/:planID/costs/:costID/subscribe")
+  .post(verifyAuthentication, planServ.subscribeToPlanCost);
+
 module.exports = router;

@@ -8,10 +8,7 @@ const { calcDiscountedPrice } = require("./calculate.discount");
 const Order = require("../models/order.Model");
 const ShippingRate = require("../models/shipping.cost.model");
 const { saveCartJob } = require("../utils/queues");
-const {
-  createCheckoutSession,
-  createPaymentIntent,
-} = require("./stripe.methods");
+const stripePayment = require("./stripe_utils/payment.stripe");
 
 // Constants for pricing (can be moved to config later)
 const TAX_RATE = 0; // e.g., 0.1 for 10%
@@ -282,6 +279,7 @@ exports.checkOut = async (req) => {
     );
 
     orderJson.paymentMethod = req.headers["paymentmethod"] || "cach";
+    orderJson.productIdsSet = [...productIdsSet];
     // create order and update product quantities and sold counts in bulk
     let order = await Order.create(orderJson);
     await productVariation.bulkWrite(variationSellBulkOptions);
@@ -309,10 +307,10 @@ exports.checkOut = async (req) => {
   }
   switch (req.headers["paymentobject"]) {
     case "session":
-      const session = await createCheckoutSession(data, req);
+      const session = await stripePayment.createCheckoutSession(req, data);
       return session;
     case "paymentintent":
-      const paymentIntent = await createPaymentIntent(data);
+      const paymentIntent = await stripePayment.createPaymentIntent(data);
       return {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
@@ -321,7 +319,6 @@ exports.checkOut = async (req) => {
         address: data.shippingAdress,
       };
     default:
-      await cartServ.deleteCart(userId); // Clear cart for cash payment
-      return order; // For cash payment, return the created order details
+      throw new ApiError("Invalid payment object specified", 400);
   }
 };

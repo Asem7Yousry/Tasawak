@@ -48,6 +48,17 @@ const addressSchema = new mongoose.Schema(
   { _id: false },
 );
 
+// subscription schema
+const subscriptionSchema = new mongoose.Schema(
+  {
+    stripeCustomerId: String,
+    stripeSubscriptionId: String,
+    planId: { type: mongoose.Schema.Types.ObjectId, ref: "Plan" },
+    costId: { type: mongoose.Schema.Types.ObjectId },
+  },
+  { _id: false },
+);
+
 const userSchema = new mongoose.Schema(
   {
     fullName: nameSchema,
@@ -82,7 +93,7 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: Date,
     passwordResetVerified: Boolean,
     // Stripe customer ID for payment processing
-    stripeCustomerId: String,
+    subscription: subscriptionSchema,
   },
   { timestamps: true },
 );
@@ -91,8 +102,14 @@ userSchema.pre("save", async function () {
   // password hashing
   if (this.isNew) {
     this.password = await bcrypt.hash(this.password, 4);
-    this.address.city = this.address.city.trim().replace(/\s+/g, "-").toLowerCase();
-    this.address.areaName = this.address.areaName.trim().replace(/\s+/g, "-").toLowerCase();
+    this.address.city = this.address.city
+      .trim()
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+    this.address.areaName = this.address.areaName
+      .trim()
+      .replace(/\s+/g, "-")
+      .toLowerCase();
   }
 });
 

@@ -68,4 +68,19 @@ const resetPasswordService = async (userID, password) => {
   }
 };
 
-module.exports = { resetPasswordService, verifyUserOTP, forgetPassWordService };
+// set user subscription data in database
+const setUserSubscriptionData = async (userID, subscriptionData) => {
+  const user = await User.findByIdAndUpdate(
+    userID,
+    { subscription: subscriptionData },
+    { new: true },
+  );
+  return user;
+};
+
+module.exports = {
+  resetPasswordService,
+  verifyUserOTP,
+  forgetPassWordService,
+  setUserSubscriptionData,
+};

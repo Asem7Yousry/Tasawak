@@ -36,7 +36,7 @@ exports.signUp = asyncHandler(async (req, res, next) => {
 // @access public
 exports.logIn = asyncHandler(async (req, res, next) => {
   let user = await User.findOne({ email: req.body.email }).select(
-    "_id fullName password email phoneNumber role panned address",
+    "_id fullName password email phoneNumber role panned address subscription",
   );
   if (!user) {
     return next(new ApiError(`email ${req.body["email"]} not exists`));
