@@ -1,7 +1,8 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const ApiError = require("../ApiError");
-const stripePayment = require("../stripe_utils/payment.stripe");
-const stripeRefund = require("../stripe_utils/refund.stripe");
+const stripePayment = require("./payment.stripe");
+const stripeRefund = require("./refund.stripe");
+const stripeSubscription = require("./subscription.stripe");
 
 class stripeEventHandler {
   static async checkEvent(req, res) {
@@ -47,6 +48,16 @@ class stripeEventHandler {
         // Handle failed refund
         await stripeRefund.handleRefundFailed(event.data.object);
         return "Refund failed.";
+        break;
+      case "invoice.paid":
+        // Handle successful invoice payment
+        await stripeSubscription.invoiceSucceeded(event.data.object);
+        return "Invoice payment succeeded.";
+        break;
+      case "invoice.payment_failed":
+        // Handle failed invoice payment
+        await stripeSubscription.invoicePaymentFailed(event.data.object);
+        return "Invoice payment failed.";
         break;
       default:
         console.log(`Unhandled event type: ${event.type}`);

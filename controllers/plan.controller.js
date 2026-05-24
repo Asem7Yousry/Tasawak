@@ -1,6 +1,10 @@
 const factory = require("./factoryHandler");
 const planServices = require("../services/plan.services");
 const asyncHandler = require("express-async-handler");
+const paymentMethodService = require("../utils/stripe_utils/paymentMethod.stripe");
+const stripeCustomer = require("../utils/stripe_utils/customer.stripe");
+const stripePrice = require("../utils/stripe_utils/price.stripe");
+const stripeSubscription = require("../utils/stripe_utils/subscription.stripe");
 
 // @doc create new Plan
 // @route Post /api/plan
@@ -79,10 +83,27 @@ exports.createPlanCost = asyncHandler(async (req, res) => {
 // @route post /api/plan/:planID/costs/:costID/subscribe
 // @access private (authenticated users)
 exports.subscribeToPlanCost = asyncHandler(async (req, res) => {
-  const session = await planServices.subscribeToPlanCost(
-    req,
-    req.params.planID,
-    req.params.costID,
-  );
+  const session = await planServices.subscribeToPlanCost(req);
   res.status(200).json({ status: "success", data: session });
+});
+
+exports.testplan = asyncHandler(async (req, res) => {
+  try {
+    // const paymentMethod = await paymentMethodService.retrievePaymentMethod(
+    //   req.body.id,
+    // );
+    // const paymentMethod = await stripeCustomer.retrieveCustomer(
+    //   req.body.id,
+    // );
+    // const paymentMethod = await stripePrice.getPrice(
+    //   req.body.id,
+    // );
+    const paymentMethod = await stripeSubscription.retrieveSubscription(
+      req.body.id,
+    );
+    res.status(200).json({ status: "success", data: paymentMethod });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ status: "error", message: error.message });
+  }
 });

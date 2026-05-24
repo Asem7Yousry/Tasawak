@@ -10,6 +10,7 @@ class stripeCustomer {
         name: `${req.user.fullName.first_name} ${req.user.fullName.last_name}`,
         metadata: { userId: req.user._id.toString() },
       });
+      console.log("Stripe customer created:", customer.id);
       await userServ.setUserSubscriptionData(req.user._id, {
         stripeCustomerId: customer.id,
       });
@@ -17,6 +18,21 @@ class stripeCustomer {
     } catch (err) {
       throw new ApiError(
         `Failed to create Stripe customer: ${err.message}`,
+        500,
+      );
+    }
+  }
+
+  static async retrieveCustomer(stripeCustomerId) {
+    try {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      if (!customer) {
+        throw new ApiError("Stripe customer not found", 404);
+      }
+      return customer;
+    } catch (err) {
+      throw new ApiError(
+        `Failed to retrieve Stripe customer: ${err.message}`,
         500,
       );
     }

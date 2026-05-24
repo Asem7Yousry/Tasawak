@@ -2,8 +2,8 @@ const Plan = require("../models/plan.model");
 const ApiError = require("../utils/ApiError");
 const stripeProduct = require("../utils/stripe_utils/product.stripe");
 const stripePrice = require("../utils/stripe_utils/price.stripe");
+const stripeSubscription = require("../utils/stripe_utils/subscription.stripe");
 const { QueryListing } = require("../utils/queryListing");
-const stripeMethods = require("../utils/stripe.methods");
 
 // create new plan
 exports.create = async (req) => {
@@ -162,12 +162,14 @@ exports.createPlanCost = async (planID, postData) => {
   }
 };
 
-exports.subscribeToPlanCost = async (req, planID, costID) => {
-  const { cost } = await this.getCostById(planID, costID);
+exports.subscribeToPlanCost = async (req) => {
+  const { cost } = await this.getCostById(req.params.planID, req.params.costID);
   try {
-    const session = await stripeMethods.createSubscription(
+    const session = await stripeSubscription.createSubscriptionSession(
       req,
       cost.stripePriceId,
+      req.params.planID,
+      req.params.costID,
     );
     return session;
   } catch (error) {

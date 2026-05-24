@@ -15,11 +15,14 @@ exports.signUp = asyncHandler(async (req, res, next) => {
   try {
     const newUser = await User.create(req.body);
     let { accessToken, refreshToken } = await jwtCreator(newUser);
-    res.status(201).json({
-      success: true,
-      message: "signed up successfully!",
-      data: { accessToken, refreshToken },
-    });
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "signed up successfully!",
+        data: { accessToken, refreshToken },
+      })
+      .cookie("refreshToken", refreshToken, { httpOnly: true, secure: true });
   } catch (error) {
     if (error.code === 11000) {
       // duplicate title mongo error
@@ -49,11 +52,14 @@ exports.logIn = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`wrong password`));
   }
   let { accessToken, refreshToken } = await jwtCreator(user);
-  res.status(200).json({
-    success: true,
-    message: "loged in successfully!",
-    data: { accessToken, refreshToken },
-  });
+  res
+    .status(200)
+    .json({
+      success: true,
+      message: "loged in successfully!",
+      data: { accessToken, refreshToken },
+    })
+    .cookie("refreshToken", refreshToken, { httpOnly: true, secure: true });
 });
 
 // @doc regenerate new access and refresh tokens (by only refresh token)
