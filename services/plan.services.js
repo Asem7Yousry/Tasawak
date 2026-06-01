@@ -3,6 +3,8 @@ const ApiError = require("../utils/ApiError");
 const stripeProduct = require("../utils/stripe_utils/product.stripe");
 const stripePrice = require("../utils/stripe_utils/price.stripe");
 const stripeSubscription = require("../utils/stripe_utils/subscription.stripe");
+const stripeCustomer = require("../utils/stripe_utils/customer.stripe");
+const stripePaymentMethod = require("../utils/stripe_utils/paymentMethod.stripe");
 const { QueryListing } = require("../utils/queryListing");
 
 // create new plan
@@ -173,9 +175,66 @@ exports.subscribeToPlanCost = async (req) => {
     );
     return session;
   } catch (error) {
-    console.log(error);
     throw new ApiError(
       "Failed to subscribe to plan cost: " + error.message,
+      500,
+    );
+  }
+};
+
+exports.addPaymentMethodtoCustomer = async (req) => {
+  try {
+    const updatedCustomer =
+      await stripeCustomer.addPaymentMethodToCustomer(req);
+    return updatedCustomer;
+  } catch (error) {
+    throw new ApiError(
+      "Failed to add payment method to customer: " + error.message,
+      500,
+    );
+  }
+};
+
+exports.detachPaymentMethod = async (req) => {
+  try {
+    await stripeCustomer.detachPaymentMethod(
+      req.body.id,
+      req.user.subscription.stripeCustomerId,
+    );
+  } catch (error) {
+    throw new ApiError(
+      "Failed to detach payment method from customer: " + error.message,
+      500,
+    );
+  }
+};
+
+exports.setDefaultPaymentMethod = async (req) => {
+  try {
+    const updatedCustomer = await stripeCustomer.updateCustomer(
+      req.user.subscription.stripeCustomerId,
+      {
+        invoice_settings: { default_payment_method: req.body.id },
+      },
+    );
+    return updatedCustomer;
+  } catch (error) {
+    throw new ApiError(
+      "Failed to set default payment method for customer: " + error.message,
+      500,
+    );
+  }
+};
+
+exports.listCustomerPaymentMethods = async (req) => {
+  try {
+    const paymentMethods = await stripePaymentMethod.listCustomerPaymentMethods(
+      req.user.subscription.stripeCustomerId,
+    );
+    return paymentMethods;
+  } catch (error) {
+    throw new ApiError(
+      "Failed to list customer payment methods: " + error.message,
       500,
     );
   }

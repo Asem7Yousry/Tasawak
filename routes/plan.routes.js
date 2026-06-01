@@ -9,7 +9,27 @@ const router = express.Router();
 const adminGuard = [verifyAuthentication, isAdmin];
 
 // @desc routes for listing all plans and creating new plan
-router.route("/test").get(planServ.testplan)
+router.route("/test").get(planServ.testplan);
+
+// @desc route for add new payment method to customer
+router
+  .route("/add-payment-method")
+  .post(verifyAuthentication, planServ.addPaymentMethodtoCustomer);
+
+// @desc route for delete payment method from customer
+router
+  .route("/delete-payment-method")
+  .post(verifyAuthentication, planServ.deletePaymentMethodfromCustomer);
+
+// @desc route for setting default payment method for customer
+router
+  .route("/set-default-payment-method")
+  .post(verifyAuthentication, planServ.setDefaultPaymentMethod);
+
+// @desc route for listing all payment methods of a customer
+router
+  .route("/list-payment-methods")
+  .get(verifyAuthentication, planServ.listCustomerPaymentMethods);
 
 // @desc routes for listing all plans and creating new plan
 router.route("/").get(planServ.getAllPlan).post(

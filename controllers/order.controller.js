@@ -114,7 +114,6 @@ exports.subscription = asyncHandler(async (req, res, next) => {
       data: subSession,
     });
   } catch (error) {
-    console.log(error);
     return next(new ApiError(error.message, error.statusCode));
   }
 });
@@ -129,7 +128,6 @@ exports.test = asyncHandler(async (req, res, next) => {
       data: null,
     });
   } catch (error) {
-    console.log(error);
     return next(new ApiError(error.message, error.statusCode));
   }
 });

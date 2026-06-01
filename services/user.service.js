@@ -10,6 +10,14 @@ const findUserByEmail = async (email) => {
   return user;
 };
 
+const findUserById = async (id) => {
+  let user = await User.findById(id);
+  if (!user) {
+    throw new ApiError(`user with id:${id} not exists in DataBase`, 404);
+  }
+  return user;
+};
+
 //// forget password services ////
 const forgetPassWordService = async (email) => {
   try {
@@ -83,4 +91,5 @@ module.exports = {
   verifyUserOTP,
   forgetPassWordService,
   setUserSubscriptionData,
+  findUserById
 };

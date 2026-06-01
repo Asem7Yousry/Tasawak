@@ -87,20 +87,62 @@ exports.subscribeToPlanCost = asyncHandler(async (req, res) => {
   res.status(200).json({ status: "success", data: session });
 });
 
+// @doc add new payment method to customer
+// @route post /api/plan/add-payment-method
+// @access private (authenticated users)
+exports.addPaymentMethodtoCustomer = asyncHandler(async (req, res) => {
+  const paymentMethod = await planServices.addPaymentMethodtoCustomer(req);
+  res.status(200).json({ status: "success", data: paymentMethod });
+});
+
+// @doc delete payment method from customer
+// @route post /api/plan/delete-payment-method
+// @access private (authenticated users)
+exports.deletePaymentMethodfromCustomer = asyncHandler(async (req, res) => {
+  await planServices.detachPaymentMethod(req);
+  res.status(200).json({
+    status: "success",
+    message: "Payment method detached successfully",
+  });
+});
+
+// @doc set default payment method for customer
+// @route post /api/plan/set-default-payment-method
+// @access private (authenticated users)
+exports.setDefaultPaymentMethod = asyncHandler(async (req, res) => {
+  const updatedCustomer = await planServices.setDefaultPaymentMethod(req);
+  res.status(200).json({ status: "success", data: updatedCustomer });
+});
+
+// @doc list all payment methods of a customer
+// @route get /api/plan/list-payment-methods
+// @access private (authenticated users)
+exports.listCustomerPaymentMethods = asyncHandler(async (req, res) => {
+  const paymentMethods = await planServices.listCustomerPaymentMethods(req);
+  res.status(200).json({ status: "success", data: paymentMethods });
+});
+
 exports.testplan = asyncHandler(async (req, res) => {
   try {
     // const paymentMethod = await paymentMethodService.retrievePaymentMethod(
     //   req.body.id,
     // );
-    // const paymentMethod = await stripeCustomer.retrieveCustomer(
+
+    // const paymentMethod = await paymentMethodService.detachPaymentMethod(
     //   req.body.id,
     // );
+
+    const paymentMethod = await stripeCustomer.retrieveCustomer(req.body.id);
+    // const paymentMethod = await stripeCustomer.listCustomerPaymentMethods(
+    //   req.body.id,
+    // );
+
     // const paymentMethod = await stripePrice.getPrice(
     //   req.body.id,
     // );
-    const paymentMethod = await stripeSubscription.retrieveSubscription(
-      req.body.id,
-    );
+    // const paymentMethod = await stripeSubscription.retrieveSubscription(
+    //   req.body.id,
+    // );
     res.status(200).json({ status: "success", data: paymentMethod });
   } catch (error) {
     console.log(error);

@@ -16,7 +16,6 @@ class StripeSubscription {
       const customerId =
         req.user?.subscription?.stripeCustomerId ||
         (await stripeCustomer.createCustomer(req)).id;
-      console.log("Using Stripe customer ID:", customerId);
       // Create the subscription
       const Subscription = await stripe.checkout.sessions.create({
         mode: "subscription",

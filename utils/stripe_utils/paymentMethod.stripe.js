@@ -6,7 +6,13 @@ class stripePaymentMethod {
     try {
       const paymentMethod = await stripe.paymentMethods.create({
         type: type,
-        card: cardDetails,
+        // card: cardDetails,
+        card: {
+          token: cardDetails.token, // ← use token, not raw numbers
+        },
+      });
+      // attach the payment method to the customer
+      await stripe.paymentMethods.attach(paymentMethod.id, {
         customer: customerId,
       });
       return paymentMethod;
@@ -28,6 +34,33 @@ class stripePaymentMethod {
     } catch (err) {
       throw new ApiError(
         `Failed to retrieve Stripe payment method: ${err.message}`,
+        500,
+      );
+    }
+  }
+
+  // delete payment method from customer
+  static async detachPaymentMethod(id) {
+    try {
+      await stripe.paymentMethods.detach(id);
+    } catch (err) {
+      throw new ApiError(
+        `Failed to detach Stripe payment method: ${err.message}`,
+        500,
+      );
+    }
+  }
+
+  // list all payment methods of a customer
+  static async listCustomerPaymentMethods(stripeCustomerId) {
+    try {
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: stripeCustomerId,
+      });
+      return paymentMethods;
+    } catch (err) {
+      throw new ApiError(
+        `Failed to list Stripe payment methods: ${err.message}`,
         500,
       );
     }
