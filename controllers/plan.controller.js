@@ -122,6 +122,22 @@ exports.listCustomerPaymentMethods = asyncHandler(async (req, res) => {
   res.status(200).json({ status: "success", data: paymentMethods });
 });
 
+// @doc get user subscription
+// @route get /api/plan/subscription
+// @access private (authenticated users)
+exports.getUserSubscription = asyncHandler(async (req, res) => {
+  const subscription = await planServices.getUserSubscription(req);
+  res.status(200).json({ status: "success", data: subscription });
+});
+
+// @doc change subscription price
+// @route put /api/plan/subscription
+// @access private (authenticated users)
+exports.changeSubscriptionPrice = asyncHandler(async (req, res) => {
+  const subscription = await planServices.changeSubscriptionPrice(req);
+  res.status(200).json({ status: "success", data: subscription });
+});
+
 exports.testplan = asyncHandler(async (req, res) => {
   try {
     // const paymentMethod = await paymentMethodService.retrievePaymentMethod(

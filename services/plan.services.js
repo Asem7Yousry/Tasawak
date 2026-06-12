@@ -182,7 +182,7 @@ exports.subscribeToPlanCost = async (req) => {
       const subscription = await stripeSubscription.createSubscription(
         customerId,
         cost.stripePriceId,
-        req.body.paymentMethodId
+        req.body.paymentMethodId,
       );
       return subscription;
     }
@@ -247,6 +247,35 @@ exports.listCustomerPaymentMethods = async (req) => {
   } catch (error) {
     throw new ApiError(
       "Failed to list customer payment methods: " + error.message,
+      500,
+    );
+  }
+};
+
+exports.getUserSubscription = async (req) => {
+  try {
+    const subscription = await stripeSubscription.retrieveSubscription(
+      req.user.subscription.stripeSubscriptionId,
+    );
+    return subscription;
+  } catch (error) {
+    throw new ApiError(
+      "Failed to get user subscription: " + error.message,
+      500,
+    );
+  }
+};
+
+exports.changeSubscriptionPrice = async (req) => {
+  try {
+    const subscription = await stripeSubscription.changeSubscriptionPrice(
+      req.user.subscription.stripeSubscriptionId,
+      req.body.newPriceId,
+    );
+    return subscription;
+  } catch (error) {
+    throw new ApiError(
+      "Failed to change subscription price: " + error.message,
       500,
     );
   }

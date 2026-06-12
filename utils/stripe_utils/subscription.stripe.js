@@ -92,8 +92,23 @@ class StripeSubscription {
     }
   }
 
-  static async cancelSubscription(subscriptionId) {}
+  static async changeSubscriptionPrice(subscriptionId, newPriceId) {
+    try {
+      const subscription = await this.retrieveSubscription(subscriptionId);
+      const itemId = subscription.items.data[0].id;
+      // Downgrade or upgrade — apply credit on next invoice instead of immediate refund
+      const updated = await stripe.subscriptions.update(subscriptionId, {
+        items: [{ id: itemId, price: newPriceId }],
+        proration_behavior: "always_invoice", // create immediate invoice for difference in cost
+      });
 
+      return updated;
+    } catch (error) {
+      throw new ApiError("Failed to update subscription" + error.message, 500);
+    }
+  }
+
+  static async cancelSubscription(subscriptionId) {}
 }
 
 module.exports = StripeSubscription;

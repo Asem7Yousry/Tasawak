@@ -11,6 +11,12 @@ const adminGuard = [verifyAuthentication, isAdmin];
 // @desc routes for listing all plans and creating new plan
 router.route("/test").get(planServ.testplan);
 
+// @doc get user subscription
+router
+  .route("/my-subscription")
+  .get(verifyAuthentication, planServ.getUserSubscription)
+  .put(verifyAuthentication, planServ.changeSubscriptionPrice);
+
 // @desc route for add new payment method to customer
 router
   .route("/add-payment-method")
