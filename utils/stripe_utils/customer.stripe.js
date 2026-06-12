@@ -59,11 +59,11 @@ class stripeCustomer {
 
   // add new payment method to user subscription data
   static async addPaymentMethodToCustomer(req) {
-    let customerId = req.user?.subscription?.stripeCustomerId;
     // get or create Stripe customer for the user
     if (!req.user?.subscription?.stripeCustomerId) {
       customerId = (await this.createCustomer(req)).id;
     }
+    let customerId = req.user.subscription.stripeCustomerId;
     // create new payment method in Stripe
     const paymentMethod = await stripePaymentMethod.createPaymentMethod(
       req.body.type,
@@ -81,9 +81,13 @@ class stripeCustomer {
 
   // list all payment methods of a customer
   static async listCustomerPaymentMethods(stripeCustomerId) {
+    const customer = await this.retrieveCustomer(stripeCustomerId);
     const paymentMethods =
       await stripe.customers.listPaymentMethods(stripeCustomerId);
-    return paymentMethods;
+    return {
+      paymentMethods,
+      defaultPaymentMethod: customer.invoice_settings?.default_payment_method,
+    };
   }
 
   // delete payment method from customer

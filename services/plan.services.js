@@ -167,13 +167,25 @@ exports.createPlanCost = async (planID, postData) => {
 exports.subscribeToPlanCost = async (req) => {
   const { cost } = await this.getCostById(req.params.planID, req.params.costID);
   try {
-    const session = await stripeSubscription.createSubscriptionSession(
-      req,
-      cost.stripePriceId,
-      req.params.planID,
-      req.params.costID,
-    );
-    return session;
+    if (req.headers?.paymenttype === "session") {
+      const session = await stripeSubscription.createSubscriptionSession(
+        req,
+        cost.stripePriceId,
+        req.params.planID,
+        req.params.costID,
+      );
+      return session;
+    } else {
+      const customerId =
+        req.user?.subscription?.stripeCustomerId ||
+        (await stripeCustomer.createCustomer(req)).id;
+      const subscription = await stripeSubscription.createSubscription(
+        customerId,
+        cost.stripePriceId,
+        req.body.paymentMethodId
+      );
+      return subscription;
+    }
   } catch (error) {
     throw new ApiError(
       "Failed to subscribe to plan cost: " + error.message,
@@ -228,7 +240,7 @@ exports.setDefaultPaymentMethod = async (req) => {
 
 exports.listCustomerPaymentMethods = async (req) => {
   try {
-    const paymentMethods = await stripePaymentMethod.listCustomerPaymentMethods(
+    const paymentMethods = await stripeCustomer.listCustomerPaymentMethods(
       req.user.subscription.stripeCustomerId,
     );
     return paymentMethods;

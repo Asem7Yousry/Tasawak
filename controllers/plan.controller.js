@@ -83,8 +83,8 @@ exports.createPlanCost = asyncHandler(async (req, res) => {
 // @route post /api/plan/:planID/costs/:costID/subscribe
 // @access private (authenticated users)
 exports.subscribeToPlanCost = asyncHandler(async (req, res) => {
-  const session = await planServices.subscribeToPlanCost(req);
-  res.status(200).json({ status: "success", data: session });
+  const subscription = await planServices.subscribeToPlanCost(req);
+  res.status(200).json({ status: "success", data: subscription });
 });
 
 // @doc add new payment method to customer
