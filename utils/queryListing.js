@@ -1,16 +1,23 @@
 exports.QueryListing = (model, query) => {
-  const filterOperators = new Set(["gte", "gt", "lte", "lt", "in"]);
+  const filterOperators = new Set([
+    "gte",
+    "gt",
+    "lte",
+    "lt",
+    "in",
+    "ne",
+    "nin",
+  ]);
   const queryOperators = new Set(["sort", "project", "populate"]);
 
   const filter = {};
   const options = {
     sort: { _id: -1 },
     pageNumber: 1,
-    pageSize: 10
+    pageSize: 10,
   };
 
   Object.entries(query).forEach(([key, value]) => {
-
     // Pagination
     if (key === "pageNumber" || key === "pageSize") {
       options[key] = Number(value);
@@ -35,8 +42,7 @@ exports.QueryListing = (model, query) => {
 
       Object.entries(value).forEach(([op, val]) => {
         if (filterOperators.has(op)) {
-          operatorFilter[`$${op}`] =
-            op === "in" ? val.split(",") : val;
+          operatorFilter[`$${op}`] = op === "in" ? val.split(",") : val;
         }
       });
 
@@ -63,6 +69,6 @@ exports.QueryListing = (model, query) => {
 
   if (options.project) dbQuery = dbQuery.select(options.project);
   if (options.populate) dbQuery = dbQuery.populate(options.populate);
-  
+
   return dbQuery;
 };

@@ -10,11 +10,14 @@ new Worker(
     let cart = await redis.get(`cart_${userId}`);
     if (!cart) return;
     cart = JSON.parse(cart);
-    await Cart.findOneAndUpdate(
-      { userId },
-      { items: cart.items, totalPrice: cart.totalPrice, coupon: cart.coupon },
-      { upsert: true },
-    );
+    const updates = {
+      items: cart.items,
+      totalPrice: cart.totalPrice,
+      coupon: cart.coupon,
+    };
+    if (cart.paymentData !== undefined) updates.paymentData = cart.paymentData;
+
+    await Cart.findOneAndUpdate({ userId }, updates, { upsert: true });
   },
   { connection: redis },
 );

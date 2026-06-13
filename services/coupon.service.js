@@ -20,21 +20,23 @@ exports.getById = (id) => Coupon.findById(id);
 // get specific Coupon by code
 exports.getByCode = async (code) => {
   let coupon = await getCache(`coupon_${code}`);
-  if (coupon) {
+  // Check if cached coupon is still valid (not expired)
+  if (coupon && new Date(coupon.expireAt) > new Date() && coupon.isActive) {
     return coupon;
   }
+  // If expired or inactive, remove from cache and fetch fresh
   coupon = await Coupon.findOne({
     code,
     expireAt: { $gt: new Date() },
     isActive: true,
   });
   if (!coupon) {
-    throw new ApiError("expried coupon", 403);
+    throw new ApiError("expired coupon", 403);
   }
   await cacheRedis(
     `coupon_${code}`,
     coupon,
-    Math.floor(coupon.expireAt - new Date() / 1000),
+    Math.floor((new Date(coupon.expireAt) - new Date()) / 1000),
   );
   return coupon;
 };
@@ -54,12 +56,28 @@ exports.applyCouponServ = async (couponCode, userId) => {
   if (!cart || Object.values(cart.items).length === 0) {
     throw new ApiError("no cart found", 404);
   }
-  cart.coupon = coupon._id;
-  const returnedCart = calcDiscountedPrice(cart, coupon);
+  cart.coupon = coupon.code;
+  let returnedCart = { ...cart };
+  const discountedPrice = calcDiscountedPrice(cart.totalPrice, coupon);
+  returnedCart.priceAfterDiscount = discountedPrice;
 
   // override cart and background job
   cacheRedis(`cart_${userId}`, cart);
   await saveCartJob(userId);
 
   return returnedCart;
+};
+
+// remove coupon from cart
+exports.removeCouponServ = async (userId) => {
+  let cart = await cartServ.getCart(userId);
+  if (!cart || Object.values(cart.items).length === 0) {
+    throw new ApiError("no cart found", 404);
+  }
+  const cartId = cart._id;
+  cart = await cartServ.updateById(cartId, {
+    $unset: { coupon: "" },
+  });
+  cacheRedis(`cart_${userId}`, cart);
+  return cart;
 };

@@ -18,7 +18,7 @@ router
 // @desc routes for add product to cart
 router
   .route("/add-to-cart")
-  .put(cartRules.addCartItemOrQuantity, cartController.addToCart);
+  .post(cartRules.addCartItemOrQuantity, cartController.addToCart);
 
 // @desc routes for remove product from cart
 router
@@ -32,5 +32,8 @@ router
 
 // @desc apply coupon on cart to reset totla price
 router.route("/apply-coupon").post(couponController.applyCoupon);
+
+// @desc remove coupon applied on cart 
+router.route("/remove-coupon").delete(couponController.removeCoupon);
 
 module.exports = router;

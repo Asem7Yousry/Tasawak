@@ -75,3 +75,5 @@ exports.deleteById = async (id) => {
   await delCache(`product_${id}`);
   await Product.findByIdAndDelete(id);
 };
+
+exports.bulkWrite = (operations) => Product.bulkWrite(operations);

@@ -25,8 +25,14 @@ exports.getCart = async (userId) => {
     cart = await this.createCart({ userId });
   }
   // save cart in Redis
-  let { items, totalPrice } = cart;
-  cart = { items, totalPrice };
+  let { items, totalPrice, coupon, _id, paymentData } = cart;
+  cart = {
+    items,
+    totalPrice,
+    coupon,
+    _id,
+    paymentData,
+  };
   await cacheRedis(cartKey, cart);
   return cart;
 };
@@ -35,6 +41,13 @@ exports.getCart = async (userId) => {
 exports.addCartItem = async (userId, quantity, variationId, product) => {
   // get cart
   let mycart = await this.getCart(userId);
+  // check if cart has already not paied order
+  if (mycart.paymentData) {
+    throw new ApiError(
+      "You have an unpaid order. Please complete the payment before adding more items.",
+      400,
+    );
+  }
 
   // create key for product
   const productKey = getProductKey(product._id, variationId);
@@ -51,14 +64,14 @@ exports.addCartItem = async (userId, quantity, variationId, product) => {
     }
     mycart.totalPrice -= item.piecePrice * item.quantity;
     mycart.totalPrice +=
-      product.variations[variationId].peacePrice * newQuantity;
+      product.variations[variationId].piecePrice * newQuantity;
 
     item.quantity = newQuantity;
-    item.piecePrice = product.variations[variationId].peacePrice;
+    item.piecePrice = product.variations[variationId].piecePrice;
   } else {
     quantity = Number(quantity);
     let productName = product.name;
-    let piecePrice = product.variations[variationId].peacePrice;
+    let piecePrice = product.variations[variationId].piecePrice;
     mycart.items[productKey] = {
       quantity,
       productName,
@@ -78,6 +91,13 @@ exports.addCartItem = async (userId, quantity, variationId, product) => {
 exports.removeCartItem = async (userId, productId, variationId) => {
   // get chached cart, if not then from DB
   let cart = await this.getCart(userId);
+  // check if cart has already not paied order
+  if (cart.paymentData) {
+    throw new ApiError(
+      "You have an unpaid order. Please complete the payment before adding more items.",
+      400,
+    );
+  }
   // Find the item inside the array
   const productKey = getProductKey(productId, variationId);
   let item = cart.items[productKey];
@@ -104,13 +124,20 @@ exports.changeCartItemQuantity = async (
   product,
 ) => {
   const cart = await this.getCart(userId);
+  // check if cart has already not paied order
+  if (cart.paymentData) {
+    throw new ApiError(
+      "You have an unpaid order. Please complete the payment before adding more items.",
+      400,
+    );
+  }
   // Find the item inside the cart items
   const productKey = getProductKey(productId, variationId);
   let item = cart.items[productKey];
   if (!item) {
     throw new ApiError(`product variation not exists in cart`, 404);
   }
-  const price = product.variations[variationId].peacePrice;
+  const price = product.variations[variationId].piecePrice;
   // check if there is an increase or decrease in cart product
   if (price != item.piecePrice) {
     cart.totalPrice -= item.piecePrice * item.quantity;
@@ -154,3 +181,7 @@ exports.deleteCart = async (userId) => {
   await delCache(`cart_${userId}`);
   return Cart.findOneAndDelete({ userId: userId });
 };
+
+// update cart by id
+exports.updateById = (id, updates) =>
+  Cart.findByIdAndUpdate(id, updates, { new: true, runValidators: true });

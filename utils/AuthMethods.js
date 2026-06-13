@@ -12,12 +12,13 @@ exports.verifyAuthentication = (req, res, next) => {
     req.user = JWT.verify(token, process.env.SECRET_KEY);
     next();
   } catch (err) {
-    next(new ApiError(err.message, 401))
+    next(new ApiError(err.message, 401));
   }
 };
 
 exports.verifyRefreshToken = (req) => {
-  let user = JWT.verify(req.cookies.refreshToken, process.env.SECRET_KEY);
+  // let user = JWT.verify(req.cookies.refreshToken, process.env.SECRET_KEY);
+  let user = JWT.verify(req.body.refreshToken, process.env.SECRET_KEY);
   req.user = user;
 };
 
