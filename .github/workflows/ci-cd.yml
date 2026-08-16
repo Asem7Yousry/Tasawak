@@ -1,0 +1,30 @@
+name: tasawak CI/CD Pipeline
+
+on:
+    push:
+        branches:
+            - docker
+
+    # pull_request:
+    #     branches:
+    #         - main
+
+jobs:
+    test_and_build:
+        runs-on: ubuntu-latest # difine the runner environment (virtual machine) to run the job on
+        steps:
+            - name: clone repository code
+              uses: actions/checkout@v5 # checkout the repository to the runner environment
+
+            - name: setup nodeJS
+              uses: actions/setup-node@v4
+              with: {node-version: 22, cache: 'npm'}
+
+            - name: install dependencies
+              run: npm install # install the dependencies defined in package.json
+
+            # - name: test code 
+            #   run: npm run test # run the tests defined in package.json
+
+            # - name: build code
+            #   run: npm run build # build the code defined in package.json
