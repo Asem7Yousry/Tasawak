@@ -4,5 +4,3 @@ test.js
 __test__/
 commands.txt
 .dockerignore
-nginx/
-docker/

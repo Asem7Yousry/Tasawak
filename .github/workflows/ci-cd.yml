@@ -4,41 +4,40 @@ on:
     push:
         branches:
             - docker
-
-    # pull_request:
-    #     branches:
-    #         - main
-
+      
 jobs:
-    # ci pipeline to test and build the code 
+    # ci pipeline to test the code and build docker image 
     test_and_build:
         runs-on: ubuntu-latest # difine the runner environment (virtual machine) to run the job on
         steps:
+            # clone the code to runner 
             - name: clone repository code
-              uses: actions/checkout@v5 # checkout the repository to the runner environment
+              uses: actions/checkout@v5 
 
-            - name: setup nodeJS
-              uses: actions/setup-node@v4
-              with: {node-version: 22, cache: 'npm'}
+            # login to docker hub 
+            - name: Login to Docker Hub
+              uses: docker/login-action@v4
+              with:
+                username: ${{ vars.DOCKERHUB_USERNAME }}
+                password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-            - name: install dependencies
-              run: npm install # install the dependencies defined in package.json
+            # build docker image 
+            - name: Build Docker image
+              run: docker build -t ${{vars.DOCKERHUB_USERNAME}}/tasawak:latest -f docker/Dockerfile . 
 
-            # - name: test code 
-            #   run: npm run test # run the tests defined in package.json
+            # push docker image to docker hub
+            - name: Push Docker image
+              run: docker push ${{vars.DOCKERHUB_USERNAME}}/tasawak:latest
 
-            # - name: build code
-            #   run: npm run build # build the code defined in package.json
 
-            # upload the source code as an artifact to be used in the deploy job
+          # upload the source code as an artifact to be used in the deploy job
             - name: upload artifacts 
               uses: actions/upload-artifact@v4
               with:
                 name: source-code
                 path: |
-                    src 
-                    package.json 
-                    package-lock.json
+                  docker/docker-compose.yml
+                  nginx/
     
     # cd pipeline to deploy the code to the server
     deploy:
@@ -51,16 +50,27 @@ jobs:
                 name: source-code
                 path: ./ 
 
-            - name: Deploy to Staging server
+            - name: Deploy to EC2 server
               uses: easingthemes/ssh-deploy@main
               with:
                     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-                    ARGS: "-rlgoDzvc --delete --exclude='docker/' --exclude='nginx/' -i"
+                    ARGS: "-rlgoDzvc -i"
                     SOURCE: "./"
                     REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
                     REMOTE_USER: ${{ secrets.REMOTE_USER }}
                     TARGET: ${{ secrets.REMOTE_TARGET }}
-                    # EXCLUDE: "/dist/, /node_modules/"
+                    SCRIPT_AFTER: |
+                      cd /home/ubuntu/Tasawak
+                      echo "docker compose down the containers"
+                      docker compose -f docker/docker-compose.yml down
+                      echo "delete the pro-app docker image" 
+                      docker image rm ${{vars.DOCKERHUB_USERNAME}}/tasawak:latest
+                      echo "docker up the containers"
+                      docker compose -f docker/docker-compose.yml up -d
+                      # echo "delete the unused docker images"
+                      # docker image prune -f
+
+
                     
 
 

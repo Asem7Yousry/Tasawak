@@ -1,0 +1,54 @@
+services:
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    restart: always
+    ports:
+    - "80:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - dev-app
+  dev-app:
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    image: dev_img
+    deploy:
+      replicas: 3 # number of containers to run in scalling up
+    # container_name: dev-app
+    env_file:
+      - ../.env
+    environment:
+      - DB_URI=mongodb://asem:asem2000@mongo:27017/Tasawak?authSource=admin
+      - NODE_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=myStrongPassword
+    volumes:
+      - ../src:/app/src:ro
+      - node_modules:/app/node_modules  
+    depends_on:
+      - mongo
+      - redis
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: always
+    # to create admin user
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: asem
+      MONGO_INITDB_ROOT_PASSWORD: asem2000
+    volumes:
+      - mongo-data:/data/db
+  redis:
+    image: redis
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass myStrongPassword
+volumes:
+  mongo-data:
+  node_modules:

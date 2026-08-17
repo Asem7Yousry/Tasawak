@@ -1,12 +1,13 @@
 const asyncHandler = require("express-async-handler");
 const cartServices = require("../services/cart.service");
-// const os = require("os");
+const os = require("os");
 
 // @doc get specific cart by userID
 // @route Get /api/cart/:userID
 // @access private
 exports.getMyCart = asyncHandler(async (req, res) => {
-  // console.log(`host name: ${os.hostname()}`);
+  console.log(`host name: ${os.hostname()}`);
+  console.log(`host name: ${os.hostname()}`);
   let specificCart = await cartServices.getCart(req.user._id);
   res.status(200).json({ success: true, Cart: specificCart });
 });
