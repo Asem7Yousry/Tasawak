@@ -4,3 +4,4 @@ test.js
 __test__/
 commands.txt
 .dockerignore
+docker/docker-compose.dev.yml

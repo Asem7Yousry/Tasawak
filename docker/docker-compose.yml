@@ -6,14 +6,11 @@ services:
     ports:
     - "80:80"
     volumes:
-      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - pro-app
   pro-app:
-    image: asemjj/tasawak:latest 
-    container_name: tasawak-app
-    ports:
-      - "5000:5000"
+    image: asemjj/tasawak:latest
     env_file:
       - .env
     environment:
@@ -21,16 +18,14 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=myStrongPassword
-    # command: npm run start
     depends_on:
       - redis
+    deploy:
+      replicas: 3
   redis:
-    image: redis
+    image: redis 
     container_name: redis
     restart: always
     ports:
       - "6379:6379"
     command: redis-server --requirepass myStrongPassword
-
-volumes:
-  node_modules:

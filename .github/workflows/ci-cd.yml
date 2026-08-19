@@ -1,77 +1,62 @@
-name: tasawak CI/CD Pipeline
+name: Tasawak CI/CD Pipeline
 
 on:
-    push:
-        branches:
-            - docker
-      
+  push:
+    branches:
+      - main
+ 
 jobs:
-    # ci pipeline to test the code and build docker image 
-    test_and_build:
-        runs-on: ubuntu-latest # difine the runner environment (virtual machine) to run the job on
-        steps:
-            # clone the code to runner 
-            - name: clone repository code
-              uses: actions/checkout@v5 
+  ci_process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-            # login to docker hub 
-            - name: Login to Docker Hub
-              uses: docker/login-action@v4
-              with:
-                username: ${{ vars.DOCKERHUB_USERNAME }}
-                password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-            # build docker image 
-            - name: Build Docker image
-              run: docker build -t ${{vars.DOCKERHUB_USERNAME}}/tasawak:latest -f docker/Dockerfile . 
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ vars.DOCKERHUB_USERNAME }}/tasawak:latest \
+            -f docker/Dockerfile .
 
-            # push docker image to docker hub
-            - name: Push Docker image
-              run: docker push ${{vars.DOCKERHUB_USERNAME}}/tasawak:latest
+      - name: Push Docker image
+        run: |
+          docker push \
+            ${{ vars.DOCKERHUB_USERNAME }}/tasawak:latest
 
+  cd_process:
+    needs: ci_process
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-          # upload the source code as an artifact to be used in the deploy job
-            - name: upload artifacts 
-              uses: actions/upload-artifact@v4
-              with:
-                name: source-code
-                path: |
-                  docker/docker-compose.yml
-                  nginx/
-    
-    # cd pipeline to deploy the code to the server
-    deploy:
-        runs-on: ubuntu-latest
-        needs: test_and_build # this job will run after the test_and_build job is completed successfully
-        steps:
-            - name: download artifacts
-              uses: actions/download-artifact@v4
-              with:
-                name: source-code
-                path: ./ 
+      - name: Deploy to EC2
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ARGS: "-rlgoDzvc -i"
+          SOURCE: "docker/docker-compose.yml nginx/nginx.conf"
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          TARGET: ${{ secrets.REMOTE_TARGET }}
 
-            - name: Deploy to EC2 server
-              uses: easingthemes/ssh-deploy@main
-              with:
-                    SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-                    ARGS: "-rlgoDzvc -i"
-                    SOURCE: "./"
-                    REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-                    REMOTE_USER: ${{ secrets.REMOTE_USER }}
-                    TARGET: ${{ secrets.REMOTE_TARGET }}
-                    SCRIPT_AFTER: |
-                      cd /home/ubuntu/Tasawak
-                      echo "docker compose down the containers"
-                      docker compose -f docker/docker-compose.yml down
-                      echo "delete the pro-app docker image" 
-                      docker image rm ${{vars.DOCKERHUB_USERNAME}}/tasawak:latest
-                      echo "docker up the containers"
-                      docker compose -f docker/docker-compose.yml up -d
-                      # echo "delete the unused docker images"
-                      # docker image prune -f
+          SCRIPT_AFTER: |
+            cd /home/ubuntu/Tasawak
 
+            echo "Pulling latest docker image..."
+            docker compose pull pro-app
 
-                    
+            echo "Stopping old containers..."
+            docker compose down
 
+            echo "Starting containers..."
+            docker compose up -d
 
-
+            echo "delete unusedimages....."
+            docker image prune -f 
