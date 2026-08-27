@@ -1,6 +1,6 @@
 const { Product, productVariation } = require("../models/productModel");
 const { delCache, cacheRedis } = require("./redis.methods");
-const ApiError = require("../utils/apiError");
+const ApiError = require("./apiError");
 const cartServ = require("../services/cart.service");
 const prodServ = require("../services/product.service");
 const couponServ = require("../services/coupon.service");

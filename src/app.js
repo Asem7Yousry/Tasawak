@@ -17,7 +17,7 @@ app.use(cors());
 app.use(compression());
 // app.use(express.json());
 app.use((req, res, next) => {
-  if (req.originalUrl === '/api/order/webhook-completed') {
+  if (req.originalUrl === "/api/order/webhook-completed") {
     next();
   } else {
     express.json()(req, res, next);

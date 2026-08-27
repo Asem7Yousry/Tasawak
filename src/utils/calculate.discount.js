@@ -1,4 +1,4 @@
-const ApiError = require("../utils/apiError");
+const ApiError = require("./apiError");
 
 // calculate price after discount based on type of coupon
 exports.calcDiscountedPrice = (totalPrice, coupon) => {

@@ -60,7 +60,7 @@ exports.createProductValidator = [
       let category = await Category.findById(categoryID);
       if (!category) {
         return Promise.reject(
-          new ApiError(`no Category found with id: ${categoryID}`, 404)
+          new ApiError(`no Category found with id: ${categoryID}`, 404),
         );
       } else {
         req.body.categoryName = category.title;
@@ -80,8 +80,8 @@ exports.createProductValidator = [
             `${
               subCategories.length - setSubCategories.size + 1
             } of subCategories IDs are duplicated`,
-            404
-          )
+            404,
+          ),
         );
       }
       return true;
@@ -100,8 +100,8 @@ exports.createProductValidator = [
             `${subCategories.length - subCategoriesObject.length} from ${
               subCategories.length
             } of subCategories IDs are not belong to category ID`,
-            404
-          )
+            404,
+          ),
         );
       }
     }),

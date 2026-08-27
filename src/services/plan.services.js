@@ -1,5 +1,5 @@
 const Plan = require("../models/plan.model");
-const ApiError = require("../utils/ApiError");
+const ApiError = require("../utils/apiError");
 const stripeProduct = require("../utils/stripe_utils/product.stripe");
 const stripePrice = require("../utils/stripe_utils/price.stripe");
 const stripeSubscription = require("../utils/stripe_utils/subscription.stripe");

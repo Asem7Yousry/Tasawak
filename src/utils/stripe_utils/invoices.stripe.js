@@ -1,5 +1,5 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const ApiError = require("../ApiError");
+const ApiError = require("../apiError");
 
 class stripeInvoice {
   static async retrieveInvoice(invoiceId) {
@@ -18,7 +18,7 @@ class stripeInvoice {
       );
     }
   }
-  
+
   static async invoiceSucceeded(object) {
     try {
       const subscriptionId = object.parent.subscription_details?.subscription;

@@ -1,4 +1,4 @@
-const ApiError = require("../utils/ApiError");
+const ApiError = require("./apiError");
 
 exports.chainWords = (str) => {
   return str.trim().replace(/\s+/g, "-").toLowerCase();

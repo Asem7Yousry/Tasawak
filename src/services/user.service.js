@@ -91,5 +91,5 @@ module.exports = {
   verifyUserOTP,
   forgetPassWordService,
   setUserSubscriptionData,
-  findUserById
+  findUserById,
 };

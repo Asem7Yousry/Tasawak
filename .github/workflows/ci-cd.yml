@@ -1,0 +1,62 @@
+name: Tasawak CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+ 
+jobs:
+  ci_process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ vars.DOCKERHUB_USERNAME }}/tasawak:latest \
+            -f docker/Dockerfile .
+
+      - name: Push Docker image
+        run: |
+          docker push \
+            ${{ vars.DOCKERHUB_USERNAME }}/tasawak:latest
+
+  cd_process:
+    needs: ci_process
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Deploy to EC2
+        uses: easingthemes/ssh-deploy@main
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          ARGS: "-rlgoDzvc -i"
+          SOURCE: "docker/docker-compose.yml nginx/nginx.conf"
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          TARGET: ${{ secrets.REMOTE_TARGET }}
+
+          SCRIPT_AFTER: |
+            cd /home/ubuntu/Tasawak
+
+            echo "Pulling latest docker image..."
+            docker compose pull pro-app
+
+            echo "Stopping old containers..."
+            docker compose down
+
+            echo "Starting containers..."
+            docker compose up -d
+
+            echo "delete unusedimages....."
+            docker image prune -f 

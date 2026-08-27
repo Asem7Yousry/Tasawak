@@ -4,7 +4,7 @@ const { Product, productVariation } = require("../models/productModel");
 const { getCache, delCache } = require("./redis.methods");
 const cartServ = require("../services/cart.service");
 const userServ = require("../services/user.service");
-const ApiError = require("./ApiError");
+const ApiError = require("./apiError");
 
 // create a paymentIntent with Stripe API
 // exports.createPaymentIntent = async (data) => {

@@ -1,5 +1,5 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const ApiError = require("../ApiError");
+const ApiError = require("../apiError");
 
 class stripeProduct {
   static async createProduct(name, description) {
@@ -33,7 +33,10 @@ class stripeProduct {
 
   static async updateProduct(stripeProductId, updateData) {
     try {
-      const updatedProduct = await stripe.products.update(stripeProductId, updateData);
+      const updatedProduct = await stripe.products.update(
+        stripeProductId,
+        updateData,
+      );
       return updatedProduct;
     } catch (err) {
       throw new ApiError(
