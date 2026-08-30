@@ -8,6 +8,10 @@ const router = express.Router();
 // athentication check for admin
 const adminGuard = [verifyAuthentication, isAdmin];
 
+router
+.route("/test/:productID")
+.get(ProdServ.test)
+
 // @desc get all variations for specific product by ID
 router.use(
   "/:productID/variations",

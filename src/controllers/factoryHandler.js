@@ -4,7 +4,7 @@ const ApiError = require("../utils/apiError");
 exports.createDoc = (service) =>
   asyncHandler(async (req, res, next) => {
     try {
-      const newDocument = await service.create(req);
+      const newDocument = await service.create(req.body);
       res.status(201).json({
         success: true,
         message: "created successfully!",
@@ -12,7 +12,7 @@ exports.createDoc = (service) =>
       });
     } catch (error) {
       if (error.code === 11000) {
-        // duplicate mongo error
+        // duplicate mongodb error
         return next(new ApiError(`document data already exists`, 409));
       }
       return next(new ApiError(error.message, error.statusCode));
@@ -21,7 +21,7 @@ exports.createDoc = (service) =>
 
 exports.getAllDoc = (service, documentName) =>
   asyncHandler(async (req, res) => {
-    let allDocuments = await service.list(req);
+    let allDocuments = await service.list(req.query);
     if (allDocuments.length === 0) {
       res.status(404).json({
         success: false,
