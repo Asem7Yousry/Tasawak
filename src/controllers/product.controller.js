@@ -6,6 +6,8 @@ const factory = require("./factoryHandler");
 // @access private
 exports.createProduct = factory.createDoc(productServices);
 
+exports.test = productServices.test
+
 // @doc get all Products
 // @route Get /api/Product
 // @access public

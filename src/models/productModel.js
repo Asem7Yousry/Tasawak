@@ -13,7 +13,7 @@ const productVariationSchema = new mongoose.Schema(
     },
     attribute: { type: Map, of: String },
     quantity: { type: Number, required: true, min: 0 },
-    piecePrice: { type: Number, required: true },
+    piecePrice: { type: Number, required: true, min: 5.0 },
     image: String,
   },
   { timestamps: true },
