@@ -4,7 +4,7 @@ const ApiError = require("../utils/apiError");
 exports.createDoc = (service) =>
   asyncHandler(async (req, res, next) => {
     try {
-      const newDocument = await service.create(req.body);
+      const newDocument = await service.create(req);
       res.status(201).json({
         success: true,
         message: "created successfully!",
@@ -21,7 +21,7 @@ exports.createDoc = (service) =>
 
 exports.getAllDoc = (service, documentName) =>
   asyncHandler(async (req, res) => {
-    let allDocuments = await service.list(req.query);
+    let allDocuments = await service.list(req);
     if (allDocuments.length === 0) {
       res.status(404).json({
         success: false,

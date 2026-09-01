@@ -6,12 +6,12 @@ module.exports = class CommonService {
     this.model = model;
   }
 
-  create(data) {
-    return this.model.create(data);
+  create(req) {
+    return this.model.create(req.body);
   }
 
-  list(query) {
-    return QueryListing(this.model, query);
+  list(req) {
+    return QueryListing(this.model, req.query);
   }
 
   getById(id) {
