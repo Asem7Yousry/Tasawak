@@ -1,4 +1,4 @@
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const stripe = require("../../config/stripe.config");
 const ApiError = require("../apiError");
 const stripeCustomer = require("./customer.stripe");
 const stripeInvoice = require("./invoices.stripe");
