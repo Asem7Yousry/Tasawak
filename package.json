@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon --legacy-watch src/server.js",
-    "pro": "cross-env NODE_ENV=production nodemon --legacy-watch src/server.js"
+    "pro": "cross-env NODE_ENV=production nodemon --legacy-watch src/server.js",
+    "test": "jest --watchAll"
   },
   "author": "",
   "license": "ISC",
@@ -34,6 +35,7 @@
   },
   "devDependencies": {
     "@upstash/redis": "^1.36.2",
+    "jest": "^30.5.1",
     "nodemon": "^3.1.11"
   },
   "engines": {

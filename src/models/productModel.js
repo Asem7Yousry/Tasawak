@@ -103,7 +103,14 @@ productSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function () {
 });
 
 productSchema.post(
-  ["findOneAndUpdate", "updateOne", "findOneAndDelete", "deleteOne"],
+  [
+    "findOneAndUpdate",
+    "updateOne",
+    "findOneAndDelete",
+    "deleteOne",
+    "findByIdAndUpdate",
+    "findByIdAndDelete",
+  ],
   async function (doc) {
     if (!doc) return;
     await clearProductCache(doc._id);
@@ -116,7 +123,15 @@ productSchema.post(
 
 // ================= VARIATIONS =================
 productVariationSchema.post(
-  ["findOneAndUpdate", "updateOne", "save", "findOneAndDelete", "deleteOne"],
+  [
+    "findOneAndUpdate",
+    "updateOne",
+    "save",
+    "findOneAndDelete",
+    "deleteOne",
+    "findByIdAndUpdate",
+    "findByIdAndDelete",
+  ],
   async function (doc) {
     if (!doc) return;
     await clearProductCache(doc.productId);
