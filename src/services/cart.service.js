@@ -3,9 +3,19 @@ const ApiError = require("../utils/apiError");
 const { saveCartJob } = require("../utils/queues");
 const { cacheRedis, delCache, getCache } = require("../utils/redis.methods");
 
-// create key for product in cart items
-const getProductKey = (id, variationId = "") => {
-  return `${id}_${variationId}`;
+// to get variation from product
+const getVariation = (product, variationId, newQuantity) => {
+  // extract variation from product
+  const variation = product.variations.find(
+    (variation) => variation._id.toString() === variationId,
+  );
+  if (!variation) {
+    throw new ApiError("variation not belong to product", 400);
+  }
+  if (newQuantity > variation.quantity) {
+    throw new ApiError(`You can't order more than ${variation.quantity}`, 400);
+  }
+  return variation;
 };
 
 // create new cart for each user
@@ -16,13 +26,19 @@ exports.getCart = async (userId) => {
   const cartKey = `cart_${userId}`;
   // get cart from redis if it was cached
   let cart = await getCache(cartKey);
-  if (cart) {
-    return cart;
+  if (!cart) {
+    // if not get it from mongooDB
+    cart = await Cart.findOne({ userId });
   }
-  // if not get it from mongooDB
-  cart = await Cart.findOne({ userId });
   if (!cart) {
     cart = await this.createCart({ userId });
+  }
+  // check if cart has already not paied order
+  if (cart.paymentData) {
+    throw new ApiError(
+      "You have an unpaid order. Please complete the payment before adding more items.",
+      400,
+    );
   }
   // save cart in Redis
   let { items, totalPrice, coupon, _id, paymentData } = cart;
@@ -38,46 +54,37 @@ exports.getCart = async (userId) => {
 };
 
 // add product to cart
-exports.addCartItem = async (userId, quantity, variationId, product) => {
+exports.addCartItem = async (userId, variationId, product, quantity = 1) => {
   // get cart
   let mycart = await this.getCart(userId);
-  // check if cart has already not paied order
-  if (mycart.paymentData) {
-    throw new ApiError(
-      "You have an unpaid order. Please complete the payment before adding more items.",
-      400,
-    );
-  }
-
-  // create key for product
-  const productKey = getProductKey(product._id, variationId);
-
+  // extract variation from product
+  const variation = getVariation(product, variationId, quantity);
   // check if product already exists in cart or not
-  const item = mycart.items[productKey];
+  const item = mycart.items[variationId];
   if (item) {
     const newQuantity = Number(item.quantity) + Number(quantity);
-    if (newQuantity > product.variations[variationId].quantity) {
+    if (newQuantity > variation.quantity) {
       throw new ApiError(
-        `You can't order more than ${product.variations[variationId].quantity}`,
+        `You can't order more than ${variation.quantity}`,
         400,
       );
     }
     mycart.totalPrice -= item.piecePrice * item.quantity;
-    mycart.totalPrice +=
-      product.variations[variationId].piecePrice * newQuantity;
+    mycart.totalPrice += variation.piecePrice * newQuantity;
 
     item.quantity = newQuantity;
-    item.piecePrice = product.variations[variationId].piecePrice;
+    item.piecePrice = variation.piecePrice;
   } else {
     quantity = Number(quantity);
-    let productName = product.name;
-    let piecePrice = product.variations[variationId].piecePrice;
-    mycart.items[productKey] = {
+    const productName = product.name;
+    const piecePrice = variation.piecePrice;
+    const attribute = variation.attribute;
+    mycart.items[variationId] = {
       quantity,
       productName,
       piecePrice,
+      attribute,
     };
-
     mycart.totalPrice += piecePrice * quantity;
   }
   // save in Redis
@@ -88,25 +95,17 @@ exports.addCartItem = async (userId, quantity, variationId, product) => {
 };
 
 // delete product from cart
-exports.removeCartItem = async (userId, productId, variationId) => {
+exports.removeCartItem = async (userId, variationId) => {
   // get chached cart, if not then from DB
   let cart = await this.getCart(userId);
-  // check if cart has already not paied order
-  if (cart.paymentData) {
-    throw new ApiError(
-      "You have an unpaid order. Please complete the payment before adding more items.",
-      400,
-    );
-  }
   // Find the item inside the array
-  const productKey = getProductKey(productId, variationId);
-  let item = cart.items[productKey];
+  let item = cart.items[variationId];
   if (!item) {
     throw new ApiError(`product variation not exists in cart`, 404);
   }
-  let quantity = item.quantity;
-  let productPrice = item.piecePrice;
-  delete cart.items[productKey];
+  const quantity = item.quantity;
+  const productPrice = item.piecePrice;
+  delete cart.items[variationId];
   cart.totalPrice -= productPrice * quantity;
   // save changes in redis cache
   await cacheRedis(`cart_${userId}`, cart);
@@ -118,34 +117,27 @@ exports.removeCartItem = async (userId, productId, variationId) => {
 // update product quantity in cart (increment or decrement 1)
 exports.changeCartItemQuantity = async (
   userId,
-  productId,
   variationId,
-  newQuantity,
   product,
+  newQuantity,
 ) => {
   const cart = await this.getCart(userId);
-  // check if cart has already not paied order
-  if (cart.paymentData) {
-    throw new ApiError(
-      "You have an unpaid order. Please complete the payment before adding more items.",
-      400,
-    );
-  }
   // Find the item inside the cart items
-  const productKey = getProductKey(productId, variationId);
-  let item = cart.items[productKey];
+  let item = cart.items[variationId];
   if (!item) {
     throw new ApiError(`product variation not exists in cart`, 404);
   }
-  const price = product.variations[variationId].piecePrice;
+  // extract variation from product
+  const variation = getVariation(product, variationId, newQuantity);
+  const variationPrice = variation.piecePrice;
   // check if there is an increase or decrease in cart product
-  if (price != item.piecePrice) {
+  if (variationPrice != item.piecePrice) {
     cart.totalPrice -= item.piecePrice * item.quantity;
-    cart.totalPrice += price * newQuantity;
-    item.piecePrice = price;
+    cart.totalPrice += variationPrice * newQuantity;
+    item.piecePrice = variationPrice;
   } else {
     let changeInQuantity = newQuantity - item.quantity;
-    cart.totalPrice += price * changeInQuantity;
+    cart.totalPrice += variationPrice * changeInQuantity;
   }
   // set new quantity
   item.quantity = Number(newQuantity);
@@ -179,7 +171,7 @@ exports.clearCart = async (userId) => {
 // delete cart
 exports.deleteCart = async (userId) => {
   await delCache(`cart_${userId}`);
-  return Cart.findOneAndDelete({ userId: userId });
+  return Cart.findOneAndDelete({ userId });
 };
 
 // update cart by id

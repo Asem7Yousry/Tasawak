@@ -3,16 +3,15 @@ const cartServices = require("../services/cart.service");
 const os = require("os");
 
 // @doc get specific cart by userID
-// @route Get /api/cart/:userID
+// @route Get /api/cart/my-cart
 // @access private
 exports.getMyCart = asyncHandler(async (req, res) => {
-  console.log(`host name: ${os.hostname()}`);
   let specificCart = await cartServices.getCart(req.user._id);
   res.status(200).json({ success: true, Cart: specificCart });
 });
 
 // @doc update specific cart by ID
-// @route put /api/cart/:userID
+// @route put /api/cart/add-to-cart
 // @access private
 exports.addToCart = asyncHandler(async (req, res) => {
   let cart = await cartServices.addCartItem(
@@ -43,7 +42,7 @@ exports.removeCartItem = asyncHandler(async (req, res) => {
 });
 
 // @doc clear specific cart by userID
-// @route delete /api/cart/my-cart/
+// @route delete /api/cart/my-cart
 // @access private
 exports.clearCart = asyncHandler(async (req, res) => {
   let clearedCart = await cartServices.clearCart(req.user._id);

@@ -15,7 +15,9 @@ module.exports = class CommonService {
   }
 
   getById(id) {
-    return this.model.findById(id);
+    return this.model
+      .findById(id)
+      .select({ createdAt: 0, updatedAt: 0, __v: 0 });
   }
 
   updateById(id, updates) {
