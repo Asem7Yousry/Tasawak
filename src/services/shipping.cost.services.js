@@ -3,12 +3,9 @@ const ApiError = require("../utils/apiError");
 const { chainWords, checkDuplicate } = require("../utils/global.utils");
 const stripeShippingCost = require("../utils/stripe_utils/shippingCost.stripe");
 const commonCrudService = require("./common.service");
+const { getCart, updateByUserId } = require("./cart.service");
 
 class ShippingCostService extends commonCrudService {
-  constructor() {
-    super(ShippingCost);
-  }
-
   async create(req) {
     // normalize city and area to ensure consistent
     let city = chainWords(req.body.city);
@@ -106,7 +103,7 @@ class ShippingCostService extends commonCrudService {
     const city = address.city.trim().replace(/\s+/g, "-").toLowerCase();
     const area = address.areaName.trim().replace(/\s+/g, "-").toLowerCase();
     const shippingRate = await this.model.findOne({
-      $or: [{ city, area }, { city }, { city: "default" }],
+      $or: [{ city, area }, { city, area: "default" }, { city: "default" }],
     });
     return {
       shippingId: shippingRate.stripeShippingRateId,
@@ -114,6 +111,18 @@ class ShippingCostService extends commonCrudService {
       address,
     };
   }
+
+  async applyShippingCostToCart(req) {
+    let cart = await getCart(req.user._id);
+    if (cart?.shippingPrice) {
+      cart.totalPrice -= cart.shippingPrice;
+    }
+    let { SHIPPING_COST, address } = await this.getByAddress(req);
+    const totalPrice = cart.totalPrice + SHIPPING_COST;
+    let updates = { shippingPrice: SHIPPING_COST, totalPrice, address };
+    cart = await updateByUserId(req.user._id, updates);
+    return cart;
+  }
 }
 
-module.exports = new ShippingCostService();
+module.exports = new ShippingCostService(ShippingCost);

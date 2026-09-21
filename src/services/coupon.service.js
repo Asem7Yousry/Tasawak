@@ -56,9 +56,8 @@ exports.applyCouponServ = async (couponCode, userId) => {
   if (!cart || Object.values(cart.items).length === 0) {
     throw new ApiError("no cart found", 404);
   }
-  cart.coupon = coupon.code;
   let returnedCart = { ...cart };
-  const discountedPrice = calcDiscountedPrice(cart.totalPrice, coupon);
+  const discountedPrice = calcDiscountedPrice(cart, coupon);
   returnedCart.priceAfterDiscount = discountedPrice;
 
   // override cart and background job

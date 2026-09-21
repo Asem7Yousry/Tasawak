@@ -29,9 +29,11 @@ exports.getCart = async (userId) => {
   if (!cart) {
     // if not get it from mongooDB
     cart = await Cart.findOne({ userId });
-  }
-  if (!cart) {
-    cart = await this.createCart({ userId });
+    if (!cart) {
+      cart = await this.createCart({ userId });
+    }
+    let { createdAt, updatedAt, __v, ...restCart } = cart["_doc"];
+    cart = restCart;
   }
   // check if cart has already not paied order
   if (cart.paymentData) {
@@ -41,14 +43,6 @@ exports.getCart = async (userId) => {
     );
   }
   // save cart in Redis
-  let { items, totalPrice, coupon, _id, paymentData } = cart;
-  cart = {
-    items,
-    totalPrice,
-    coupon,
-    _id,
-    paymentData,
-  };
   await cacheRedis(cartKey, cart);
   return cart;
 };
@@ -56,11 +50,11 @@ exports.getCart = async (userId) => {
 // add product to cart
 exports.addCartItem = async (userId, variationId, product, quantity = 1) => {
   // get cart
-  let mycart = await this.getCart(userId);
+  let cart = await this.getCart(userId);
   // extract variation from product
   const variation = getVariation(product, variationId, quantity);
   // check if product already exists in cart or not
-  const item = mycart.items[variationId];
+  const item = cart.items[variationId];
   if (item) {
     const newQuantity = Number(item.quantity) + Number(quantity);
     if (newQuantity > variation.quantity) {
@@ -69,8 +63,10 @@ exports.addCartItem = async (userId, variationId, product, quantity = 1) => {
         400,
       );
     }
-    mycart.totalPrice -= item.piecePrice * item.quantity;
-    mycart.totalPrice += variation.piecePrice * newQuantity;
+    cart.subtotal -= item.piecePrice * item.quantity;
+    cart.subtotal += variation.piecePrice * newQuantity;
+    cart.totalPrice -= item.piecePrice * item.quantity;
+    cart.totalPrice += variation.piecePrice * newQuantity;
 
     item.quantity = newQuantity;
     item.piecePrice = variation.piecePrice;
@@ -79,19 +75,21 @@ exports.addCartItem = async (userId, variationId, product, quantity = 1) => {
     const productName = product.name;
     const piecePrice = variation.piecePrice;
     const attribute = variation.attribute;
-    mycart.items[variationId] = {
+    cart.items[variationId] = {
       quantity,
       productName,
       piecePrice,
       attribute,
     };
-    mycart.totalPrice += piecePrice * quantity;
+    cart.subtotal += piecePrice * quantity;
+    cart.totalPrice += piecePrice * quantity;
   }
+  // await Cart.findByIdAndUpdate(cart._id, cart);
   // save in Redis
-  await cacheRedis(`cart_${userId}`, mycart);
+  await cacheRedis(`cart_${userId}`, cart);
   // create job to save cart before expiration
   await saveCartJob(userId);
-  return mycart;
+  return cart;
 };
 
 // delete product from cart
@@ -106,7 +104,9 @@ exports.removeCartItem = async (userId, variationId) => {
   const quantity = item.quantity;
   const productPrice = item.piecePrice;
   delete cart.items[variationId];
+  cart.subtotal -= productPrice * quantity;
   cart.totalPrice -= productPrice * quantity;
+  // await Cart.findByIdAndUpdate(cart._id, cart);
   // save changes in redis cache
   await cacheRedis(`cart_${userId}`, cart);
   // create job to save cart before expiration
@@ -132,15 +132,19 @@ exports.changeCartItemQuantity = async (
   const variationPrice = variation.piecePrice;
   // check if there is an increase or decrease in cart product
   if (variationPrice != item.piecePrice) {
+    cart.subtotal -= item.piecePrice * item.quantity;
+    cart.subtotal += variationPrice * newQuantity;
     cart.totalPrice -= item.piecePrice * item.quantity;
     cart.totalPrice += variationPrice * newQuantity;
     item.piecePrice = variationPrice;
   } else {
     let changeInQuantity = newQuantity - item.quantity;
+    cart.subtotal += variationPrice * changeInQuantity;
     cart.totalPrice += variationPrice * changeInQuantity;
   }
   // set new quantity
   item.quantity = Number(newQuantity);
+  // await Cart.findByIdAndUpdate(cart._id, cart);
   // save in Redis
   await cacheRedis(
     `cart_${userId}`,
@@ -155,17 +159,17 @@ exports.changeCartItemQuantity = async (
 // clear cart in cache and mongoDB
 exports.clearCart = async (userId) => {
   await delCache(`cart_${userId}`);
-  const myCart = await Cart.findOneAndUpdate(
+  const cart = await Cart.findOneAndUpdate(
     { userId },
     {
-      $set: { items: {}, totalPrice: 0 },
+      $set: { items: {}, totalPrice: 0, subtotal: 0 },
     },
     { new: true },
   );
-  if (!myCart) {
+  if (!cart) {
     throw new ApiError("no cart found", 404);
   }
-  return myCart;
+  return cart;
 };
 
 // delete cart
@@ -175,5 +179,19 @@ exports.deleteCart = async (userId) => {
 };
 
 // update cart by id
+exports.updateByUserId = async (userId, update) => {
+  const cart = await this.getCart(userId);
+  Object.assign(cart, update);
+  await cacheRedis(`cart_${userId}`, cart);
+  await Cart.findByIdAndUpdate(cart._id, update, {
+    new: true,
+    runValidators: true,
+  });
+  return cart;
+};
+
 exports.updateById = (id, updates) =>
-  Cart.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+  Cart.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  });

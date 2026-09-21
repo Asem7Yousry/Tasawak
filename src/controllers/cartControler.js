@@ -1,6 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const cartServices = require("../services/cart.service");
-const os = require("os");
+const ShippingServ = require("../services/shipping.cost.services");
 
 // @doc get specific cart by userID
 // @route Get /api/cart/my-cart
@@ -16,9 +16,9 @@ exports.getMyCart = asyncHandler(async (req, res) => {
 exports.addToCart = asyncHandler(async (req, res) => {
   let cart = await cartServices.addCartItem(
     req.user._id,
-    req.body.quantity || 1,
     req.body.variationId,
     req.product,
+    req.body.quantity,
   );
   res.status(202).json({
     success: true,
@@ -33,7 +33,6 @@ exports.addToCart = asyncHandler(async (req, res) => {
 exports.removeCartItem = asyncHandler(async (req, res) => {
   let cart = await cartServices.removeCartItem(
     req.user._id,
-    req.body.productId,
     req.body.variationId,
   );
   res
@@ -59,14 +58,27 @@ exports.clearCart = asyncHandler(async (req, res) => {
 exports.changeQuantity = asyncHandler(async (req, res) => {
   let changedCart = await cartServices.changeCartItemQuantity(
     req.user._id,
-    req.body.productId,
     req.body.variationId,
-    req.body.quantity,
     req.product,
+    req.body.quantity,
   );
   res.status(202).json({
     success: true,
     message: "cart updated successfully!",
     data: { cart: changedCart },
+  });
+});
+
+// @doc add address to cart to calculate ShippingCost
+// @route post /api/shipping-cost/add-address-to-cart
+// @access public
+exports.sendAddressToCart = asyncHandler(async (req, res) => {
+  const cart = await ShippingServ.applyShippingCostToCart(req);
+  res.status(202).json({
+    success: true,
+    message: "shipping price added successfully!",
+    data: {
+      cart,
+    },
   });
 });
