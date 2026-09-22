@@ -13,7 +13,7 @@ const cartSchema = new mongoose.Schema(
       default: {},
     },
     subtotal: { type: Number, default: 0, min: 0 }, // Total before discount
-    coupon: String,
+    couponCode: String,
     couponId: {
       type: mongoose.Schema.ObjectId,
       ref: "Coupon",

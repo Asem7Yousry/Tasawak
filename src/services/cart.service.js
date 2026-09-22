@@ -162,7 +162,21 @@ exports.clearCart = async (userId) => {
   const cart = await Cart.findOneAndUpdate(
     { userId },
     {
-      $set: { items: {}, totalPrice: 0, subtotal: 0 },
+      $set: {
+        items: {},
+        totalPrice: 0,
+        subtotal: 0,
+      },
+      $unset: {
+        address: "",
+        shippingPrice: "",
+        couponCode: "",
+        couponDiscount: "",
+        couponId: "",
+        discountAmount: "",
+        discountType: "",
+        totalAfterDiscount: "",
+      },
     },
     { new: true },
   );
