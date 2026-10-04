@@ -1,11 +1,14 @@
 const DbConnection = require("./config/database");
 const app = require("./app");
+const { startRabbitMQConfiguration } = require("./rabbitmq/setup");
 
 DbConnection()
   .then(() => {
-    // run all workers
-    require("./utils/workers");
-    // // running server
+    console.log("MongoDB connected...");
+    return startRabbitMQConfiguration();
+  })
+  .then(() => {
+    console.log("rabbitMQ connected...");
     const SERVER = app.listen(process.env.PORT || 8000, (_) =>
       console.log(`server running...`),
     );

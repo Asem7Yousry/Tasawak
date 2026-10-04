@@ -5,6 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "worker": "node src/worker.js",
     "dev": "nodemon --legacy-watch src/server.js",
     "pro": "cross-env NODE_ENV=production nodemon --legacy-watch src/server.js",
     "test": "jest --watchAll"
@@ -12,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^2.2.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.70.1",
     "compression": "^1.8.1",
@@ -23,6 +25,7 @@
     "express": "^5.2.1",
     "express-async-handler": "^1.2.0",
     "express-validator": "^7.3.1",
+    "git-cz": "^4.9.0",
     "ioredis": "^5.9.3",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.2",
@@ -35,6 +38,7 @@
   },
   "devDependencies": {
     "@upstash/redis": "^1.36.2",
+    "commitizen": "^4.3.2",
     "jest": "^30.5.1",
     "nodemon": "^3.1.11"
   },

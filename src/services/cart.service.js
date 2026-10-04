@@ -2,6 +2,7 @@ const Cart = require("../models/cartModel");
 const ApiError = require("../utils/apiError");
 const { saveCartJob } = require("../utils/queues");
 const { cacheRedis, delCache, getCache } = require("../utils/redis.methods");
+const {publishOrderCreated} = require("../producers/order.producer");
 
 // to get variation from product
 const getVariation = (product, variationId, newQuantity) => {
@@ -44,6 +45,7 @@ exports.getCart = async (userId) => {
   }
   // save cart in Redis
   await cacheRedis(cartKey, cart);
+  await publishOrderCreated(cart);
   return cart;
 };
 
