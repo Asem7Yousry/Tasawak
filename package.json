@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "config": {
     "commitizen": {
-      "path": "./node_modules/cz-emoji" 
+      "path": "./node_modules/cz-emoji"  
     }
   },
   "scripts": {
