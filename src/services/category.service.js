@@ -1,20 +1,74 @@
 const Category = require("../models/categoryModel");
-const { QueryListing } = require("../utils/queryListing");
+const commonCrudService = require("./common.service");
 
-// create Category
-exports.create = (req) => Category.create(req.body);
+class CategoryService extends commonCrudService {
+  constructor() {
+    super(Category);
+  }
 
-// list all categories
-exports.list = (req) => {
-  return QueryListing(Category, req.query);
-};
+  create(req) {
+    let data = req.body;
+    data.parentCategoryId = req?.params["categoryID"] || null;
+    return this.model.create(data);
+  }
 
-// get specific category
-exports.getById = (id) => Category.findById(id);
+  list(req) {
+    const filter = {
+      parentCategoryId: null,
+    };
 
-exports.updateById = (id, updates) =>
-  Category.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+    if (req.params?.title) {
+      filter.title = req.params.title;
+    }
 
-exports.deleteAll = () => Category.deleteMany({});
+    return Category.aggregate([
+      {
+        $match: filter,
+      },
+      {
+        $graphLookup: {
+          from: "categories",
+          startWith: "$_id",
+          connectFromField: "_id",
+          connectToField: "parentCategoryId",
+          as: "subCategories",
+        },
+      },
+    ]).then((categories) => {
+      return categories.map((category) => {
+        const subCategories = category.subCategories;
 
-exports.deleteById = (id) => Category.findByIdAndDelete(id);
+        const map = new Map();
+
+        for (const subCategory of subCategories) {
+          map.set(subCategory._id.toString(), {
+            ...subCategory,
+            subCategories: [],
+          });
+        }
+
+        for (const subCategory of subCategories) {
+          if (subCategory.parentCategoryId) {
+            const parent = map.get(subCategory.parentCategoryId.toString());
+
+            if (parent) {
+              parent.subCategories.push(map.get(subCategory._id.toString()));
+            }
+          }
+        }
+
+        category.subCategories = subCategories
+          .filter(
+            (subCategory) =>
+              subCategory.parentCategoryId.toString() ===
+              category._id.toString(),
+          )
+          .map((subCategory) => map.get(subCategory._id.toString()));
+
+        return category;
+      });
+    });
+  }
+}
+
+module.exports = new CategoryService();

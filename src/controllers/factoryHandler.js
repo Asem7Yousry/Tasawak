@@ -12,7 +12,7 @@ exports.createDoc = (service) =>
       });
     } catch (error) {
       if (error.code === 11000) {
-        // duplicate mongo error
+        // duplicate mongodb error
         return next(new ApiError(`document data already exists`, 409));
       }
       return next(new ApiError(error.message, error.statusCode));

@@ -5,3 +5,5 @@ __test__/
 commands.txt
 .dockerignore
 docker/docker-compose.dev.yml
+package-lock.json
+changelog.config.js

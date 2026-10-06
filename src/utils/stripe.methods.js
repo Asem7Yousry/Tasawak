@@ -39,7 +39,6 @@ const ApiError = require("./apiError");
 //     );
 //     await cartServ.deleteCart(order.userId.toString());
 //   } catch (err) {
-//     console.log("Error handling payment success:", err);
 //     throw new ApiError(`Failed to handle payment success: ${err.message}`, 500);
 //   }
 // };
@@ -77,12 +76,10 @@ const ApiError = require("./apiError");
 //       break;
 //     }
 //     case "customer.subscription.created": {
-//       console.log("Subscription created:", object.id);
 //       await this.handleSubscriptionEvent(req, object);
 //       break;
 //     }
 //     default:
-//       console.log(`Unhandled event type: ${type}`);
 //       break;
 //   }
 // };
@@ -103,7 +100,6 @@ const ApiError = require("./apiError");
 //         SigningSecret,
 //       );
 //     } catch (err) {
-//       console.log(`⚠️ Webhook signature verification failed.`, err.message);
 //       return res
 //         .status(400)
 //         .json({ error: "Webhook signature verification failed." });
@@ -131,7 +127,6 @@ const ApiError = require("./apiError");
 //     });
 //     return shippingRate;
 //   } catch (err) {
-//     console.log(err);
 //     throw new ApiError(
 //       `Failed to create Stripe shipping rate: ${err.message}`,
 //       500,
@@ -286,7 +281,6 @@ exports.createSubscription = async (req, priceId) => {
     process.env.FRONTEND_URL || `${req.protocol}://${req.get("host")}`;
   const successUrlPath = process.env.CHECKOUT_SUCCESS_PATH || "/api/order";
   const cancelUrlPath = process.env.CHECKOUT_CANCEL_PATH || "/api/cart/my-cart";
-  console.log("customer Id", req.user.stripeCustomerId);
   const customerId =
     req.user.subscription?.stripeCustomerId ||
     (await this.createCustomer(req)).id;
@@ -309,17 +303,11 @@ exports.createSubscription = async (req, priceId) => {
 };
 
 exports.handleSubscriptionEvent = async (req, object) => {
-  console.log("Handling subscription event for subscription ID:", object.id);
   // req.user.stripeSubscriptionId = object.id;
   // await req.user.save();
 };
 
 exports.test = async (paymentId) => {
   const paymentIntent = await stripe.paymentIntents.retrieve(paymentId);
-  // console.log("paymentIntent:");
-  // console.log(paymentIntent);
-  const charge = await stripe.charges.retrieve(paymentIntent.latest_charge);
-  console.log("charge:");
-  console.log(charge);
   // return paymentIntent;
 };

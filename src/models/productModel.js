@@ -13,7 +13,7 @@ const productVariationSchema = new mongoose.Schema(
     },
     attribute: { type: Map, of: String },
     quantity: { type: Number, required: true, min: 0 },
-    piecePrice: { type: Number, required: true },
+    piecePrice: { type: Number, required: true, min: 5.0 },
     image: String,
   },
   { timestamps: true },
@@ -103,7 +103,14 @@ productSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function () {
 });
 
 productSchema.post(
-  ["findOneAndUpdate", "updateOne", "findOneAndDelete", "deleteOne"],
+  [
+    "findOneAndUpdate",
+    "updateOne",
+    "findOneAndDelete",
+    "deleteOne",
+    "findByIdAndUpdate",
+    "findByIdAndDelete",
+  ],
   async function (doc) {
     if (!doc) return;
     await clearProductCache(doc._id);
@@ -116,7 +123,15 @@ productSchema.post(
 
 // ================= VARIATIONS =================
 productVariationSchema.post(
-  ["findOneAndUpdate", "updateOne", "save", "findOneAndDelete", "deleteOne"],
+  [
+    "findOneAndUpdate",
+    "updateOne",
+    "save",
+    "findOneAndDelete",
+    "deleteOne",
+    "findByIdAndUpdate",
+    "findByIdAndDelete",
+  ],
   async function (doc) {
     if (!doc) return;
     await clearProductCache(doc.productId);

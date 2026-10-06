@@ -12,12 +12,26 @@ const cartSchema = new mongoose.Schema(
       type: Object,
       default: {},
     },
+    subtotal: { type: Number, default: 0, min: 0 }, // Total before discount
+    couponCode: String,
+    couponId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Coupon",
+    },
+    discountType: {
+      type: String,
+      enum: ["fixed", "percentage", "freeShipping"],
+    },
+    couponDiscount: Number, // Original discount value from coupon
+    discountAmount: Number, // Actual discount amount applied
+    totalAfterDiscount: Number, // Total after discount but before tax/shipping
+    shippingPrice: Number,
     totalPrice: { type: Number, default: 0, min: 0 },
-    coupon: String,
+    address: Object,
   },
   {
     timestamps: true,
-    minimize: false,
+    minimize: false, // to save empty object strictely
     strict: false,
   },
 );

@@ -3,15 +3,22 @@
   "version": "1.0.0",
   "description": "full E-commerece system that apply express on it",
   "main": "src/server.js",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-emoji"  
+    }
+  },
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "production": "cross-env NODE_ENV=production nodemon src/server.js",
-    "pro": "cross-env NODE_ENV=production nodemon src/server.js"
+    "worker": "nodemon --legacy-watch src/worker.js",
+    "dev": "nodemon --legacy-watch src/server.js",
+    "pro": "cross-env NODE_ENV=production nodemon --legacy-watch src/server.js",
+    "test": "jest --watchAll"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^2.2.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.70.1",
     "compression": "^1.8.1",
@@ -35,6 +42,10 @@
   },
   "devDependencies": {
     "@upstash/redis": "^1.36.2",
+    "commitizen": "^4.3.2",
+    "cz-conventional-changelog": "^3.3.0",
+    "cz-emoji": "^1.3.2-canary.2",
+    "jest": "^30.5.1",
     "nodemon": "^3.1.11"
   },
   "engines": {

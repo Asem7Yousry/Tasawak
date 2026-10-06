@@ -1,4 +1,4 @@
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const stripe = require("../../config/stripe.config");
 const ApiError = require("../apiError");
 const stripePayment = require("./payment.stripe");
 const stripeRefund = require("./refund.stripe");
@@ -27,7 +27,6 @@ class stripeEventHandler {
   }
 
   static async handleEvent(event) {
-    console.log("Received Stripe event:", event.type);
     switch (event.type) {
       case "payment_intent.succeeded":
         // Handle successful payment intent
@@ -60,7 +59,6 @@ class stripeEventHandler {
         return "Invoice payment failed.";
         break;
       default:
-        console.log(`Unhandled event type: ${event.type}`);
         return `Unhandled event type: ${event.type}`;
     }
   }

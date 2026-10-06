@@ -161,7 +161,6 @@ exports.testplan = asyncHandler(async (req, res) => {
     // );
     res.status(200).json({ status: "success", data: paymentMethod });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ status: "error", message: error.message });
   }
 });

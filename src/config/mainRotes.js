@@ -1,6 +1,5 @@
 // all project routes
 const categoryRout = require("../routes/category.Routes");
-const subCategoryRout = require("../routes/subCategory.Routes");
 const brandRout = require("../routes/brand.Routes");
 const productRout = require("../routes/product.Routes");
 const userRout = require("../routes/userRoutes");
@@ -12,7 +11,6 @@ const plansRoutes = require("../routes/plan.routes");
 
 const allRoutes = (app) => {
   app.use("/api/category", categoryRout);
-  app.use("/api/subCategory", subCategoryRout);
   app.use("/api/brand", brandRout);
   app.use("/api/product", productRout);
   app.use("/api/users", userRout);

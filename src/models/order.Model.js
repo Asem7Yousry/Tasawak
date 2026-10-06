@@ -7,41 +7,33 @@ const orderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    cartItems: [
-      {
-        productId: {
-          type: mongoose.Schema.ObjectId,
-          ref: "Product",
-          required: true,
-        },
-        variationId: {
-          type: mongoose.Schema.ObjectId,
-          ref: "productVariation",
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          default: 1,
-        },
-        price: {
-          type: Number,
-          required: true,
-        },
-        _id: false,
-      },
-    ],
-    taxPrice: {
-      type: Number,
-      default: 0,
+    items: {
+      type: Object,
+      required: true
     },
-    shippingPrice: {
-      type: Number,
-      default: 0,
-    },
-    totalPrice: {
-      type: Number,
-      required: true,
-    },
+    // items: [
+    //   {
+    //     productId: {
+    //       type: mongoose.Schema.ObjectId,
+    //       ref: "Product",
+    //       required: true,
+    //     },
+    //     variationId: {
+    //       type: mongoose.Schema.ObjectId,
+    //       ref: "productVariation",
+    //       required: true,
+    //     },
+    //     quantity: {
+    //       type: Number,
+    //       default: 1,
+    //     },
+    //     peacePrice: {
+    //       type: Number,
+    //       required: true,
+    //     },
+    //     _id: false,
+    //   },
+    // ],
     paymentMethod: {
       type: String,
       enum: ["cach", "card"],
@@ -58,24 +50,37 @@ const orderSchema = new mongoose.Schema(
       default: false,
     },
     deliveredAt: Date,
-    couponApplied: {
+    taxPrice: {
+      type: Number,
+      default: 0,
+    },
+    shippingPrice: {
+      type: Number,
+      default: 0,
+    },
+    couponId: {
       type: mongoose.Schema.ObjectId,
       ref: "Coupon",
     },
-    couponDiscount: Number, // Original discount value from coupon
     discountType: {
       type: String,
       enum: ["fixed", "percentage"],
     },
+    couponDiscount: Number, // Original discount value from coupon
     discountAmount: Number, // Actual discount amount applied
     subtotal: Number, // Total before discount
     totalAfterDiscount: Number, // Total after discount but before tax/shipping
+    totalPrice: {
+      type: Number,
+      required: true,
+    },
     status: {
       type: String,
       enum: ["pending", "shipping", "delivered", "cancelled"],
       default: "pending",
     },
     canceledAt: Date,
+    // address: String,
   },
   { timestamps: true, strict: false },
 );

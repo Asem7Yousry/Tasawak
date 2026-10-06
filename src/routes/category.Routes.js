@@ -1,6 +1,5 @@
 const express = require("express");
 const Catserv = require("../controllers/category.controller");
-const subCatRoutes = require("../routes/subCategory.Routes");
 const {
   getSpecificCategoryValidator,
   createCategoryValidator,
@@ -12,12 +11,10 @@ const router = express.Router();
 // athentication check for admin
 const adminGuard = [verifyAuthentication, isAdmin];
 
-// @desc get all subCategories for specific category by ID
-router.use(
-  "/:categoryID/subCategories",
-  getSpecificCategoryValidator,
-  subCatRoutes,
-);
+// @desc create new subCategory for specific category by ID
+router
+  .route("/:categoryID/subCategory")
+  .post(adminGuard, createCategoryValidator, Catserv.createCategory);
 
 // @desc routes for listing all categories and creating new category
 router

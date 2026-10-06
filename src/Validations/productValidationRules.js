@@ -1,7 +1,6 @@
 const { check } = require("express-validator");
 const validatorMiddleWare = require("../middlewares/ValidatorMiddleWareMethod");
 const Category = require("../models/categoryModel");
-const subCategory = require("../models/subCategoryModel");
 const ApiError = require("../utils/apiError");
 
 // middle ware rules for validation of products//
@@ -88,10 +87,10 @@ exports.createProductValidator = [
     })
     // check if subcategories belongs to category
     .custom(async (subCategories, { req }) => {
-      let subCategoriesObject = await subCategory.find({
+      let subCategoriesObject = await Category.find({
         $and: [
           { _id: { $in: subCategories } },
-          { categoryID: req.body.categoryID },
+          { parentCategoryId: req.body.categoryID },
         ],
       });
       if (subCategoriesObject.length !== subCategories.length) {
@@ -99,7 +98,7 @@ exports.createProductValidator = [
           new ApiError(
             `${subCategories.length - subCategoriesObject.length} from ${
               subCategories.length
-            } of subCategories IDs are not belong to category ID`,
+            } of subCategories IDs are not belong to category ID ${req.body.categoryID}`,
             404,
           ),
         );
