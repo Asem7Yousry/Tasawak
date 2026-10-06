@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "full E-commerece system that apply express on it",
   "main": "src/server.js",
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
   "scripts": {
     "start": "node src/server.js",
     "worker": "nodemon --legacy-watch src/worker.js",
@@ -39,6 +44,7 @@
   "devDependencies": {
     "@upstash/redis": "^1.36.2",
     "commitizen": "^4.3.2",
+    "cz-conventional-changelog": "^3.3.0",
     "jest": "^30.5.1",
     "nodemon": "^3.1.11"
   },
