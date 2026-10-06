@@ -2,7 +2,7 @@ const Coupon = require("../models/coupon.model");
 const { getCart, updateById } = require("./cart.service");
 const { cacheRedis, getCache } = require("../utils/redis.methods");
 const { calcDiscountedPrice } = require("../utils/calculate.discount");
-const { saveCartJob } = require("../utils/queues");
+const { publishCartSync } = require("../producers/cart.producer");
 const ApiError = require("../utils/apiError");
 const commonService = require("./common.service");
 
@@ -42,8 +42,9 @@ class couponServices extends commonService {
     cart = calcDiscountedPrice(cart, coupon);
 
     // override cart and background job
+    cart.syncToken = Date.now().toString();
     cacheRedis(`cart_${userId}`, cart);
-    await saveCartJob(userId);
+    await publishCartSync(userId, cart.syncToken);
     return cart;
   }
 
@@ -64,7 +65,9 @@ class couponServices extends commonService {
         totalAfterDiscount: "",
       },
     });
+    cart.syncToken = Date.now().toString();
     cacheRedis(`cart_${userId}`, cart);
+    await publishCartSync(userId, cart.syncToken);
     return cart;
   }
 }

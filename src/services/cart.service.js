@@ -1,8 +1,8 @@
 const Cart = require("../models/cartModel");
 const ApiError = require("../utils/apiError");
-const { saveCartJob } = require("../utils/queues");
+const { publishCartSync } = require("../producers/cart.producer");
 const { cacheRedis, delCache, getCache } = require("../utils/redis.methods");
-const {publishOrderCreated} = require("../producers/order.producer");
+const { publishOrderCreated } = require("../producers/order.producer");
 
 // to get variation from product
 const getVariation = (product, variationId, newQuantity) => {
@@ -45,7 +45,6 @@ exports.getCart = async (userId) => {
   }
   // save cart in Redis
   await cacheRedis(cartKey, cart);
-  await publishOrderCreated(cart);
   return cart;
 };
 
@@ -88,9 +87,10 @@ exports.addCartItem = async (userId, variationId, product, quantity = 1) => {
   }
   // await Cart.findByIdAndUpdate(cart._id, cart);
   // save in Redis
+  cart.syncToken = Date.now().toString();
   await cacheRedis(`cart_${userId}`, cart);
   // create job to save cart before expiration
-  await saveCartJob(userId);
+  await publishCartSync(userId, cart.syncToken);
   return cart;
 };
 
@@ -110,9 +110,10 @@ exports.removeCartItem = async (userId, variationId) => {
   cart.totalPrice -= productPrice * quantity;
   // await Cart.findByIdAndUpdate(cart._id, cart);
   // save changes in redis cache
+  cart.syncToken = Date.now().toString();
   await cacheRedis(`cart_${userId}`, cart);
   // create job to save cart before expiration
-  await saveCartJob(userId);
+  await publishCartSync(userId, cart.syncToken);
   return cart;
 };
 
@@ -148,13 +149,14 @@ exports.changeCartItemQuantity = async (
   item.quantity = Number(newQuantity);
   // await Cart.findByIdAndUpdate(cart._id, cart);
   // save in Redis
+  cart.syncToken = Date.now().toString();
   await cacheRedis(
     `cart_${userId}`,
     cart,
     Number(process.env.Redis_Expriation_Time),
   );
   // create job to save cart before expiration
-  await saveCartJob(userId);
+  await publishCartSync(userId, cart.syncToken);
   return cart;
 };
 
@@ -198,6 +200,7 @@ exports.deleteCart = async (userId) => {
 exports.updateByUserId = async (userId, update) => {
   const cart = await this.getCart(userId);
   Object.assign(cart, update);
+  cart.syncToken = Date.now().toString();
   await cacheRedis(`cart_${userId}`, cart);
   await Cart.findByIdAndUpdate(cart._id, update, {
     new: true,

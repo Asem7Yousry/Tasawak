@@ -91,7 +91,6 @@ class stripeRefund {
 
   static async handleRefundFailed(object) {
     // send email to notify user about failed refund
-    console.log("Refund failed for refund ID:", object);
   }
 }
 

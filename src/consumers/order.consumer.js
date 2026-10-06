@@ -5,7 +5,6 @@ const { ORDER_CREATED_QUEUE } = require("../rabbitmq/queues");
 
 async function startOrderConsumer() {
   const channel = getChannel();
-
   await channel.consume(ORDER_CREATED_QUEUE, async (message) => {
     if (!message) {
       return;
@@ -14,7 +13,7 @@ async function startOrderConsumer() {
     try {
       const data = JSON.parse(message.content.toString());
 
-      console.log("Order received:", data);
+
 
       // Business logic
       // send email
@@ -23,7 +22,7 @@ async function startOrderConsumer() {
 
       channel.ack(message);
     } catch (error) {
-      console.error("Order processing failed:", error);
+
     }
   });
 }

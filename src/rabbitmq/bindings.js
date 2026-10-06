@@ -1,9 +1,19 @@
 // bind exchanges(routes) with queues by routing key
 const { getChannel } = require("../config/rabbitmq");
 
-const { ORDER_EXCHANGE, PAYMENT_EXCHANGE } = require("./exchanges");
+const {
+  ORDER_EXCHANGE,
+  PAYMENT_EXCHANGE,
+  CART_DELAY_EXCHANGE,
+  CART_MAIN_EXCHANGE,
+} = require("./exchanges");
 
-const { ORDER_CREATED_QUEUE, PAYMENT_COMPLETED_QUEUE } = require("./queues");
+const {
+  ORDER_CREATED_QUEUE,
+  PAYMENT_COMPLETED_QUEUE,
+  CART_DELAY_QUEUE,
+  CART_MAIN_QUEUE,
+} = require("./queues");
 
 async function setupBindings() {
   const channel = getChannel();
@@ -15,6 +25,9 @@ async function setupBindings() {
     PAYMENT_EXCHANGE,
     "payment.completed",
   );
+
+  await channel.bindQueue(CART_DELAY_QUEUE, CART_DELAY_EXCHANGE, "cart.delay");
+  await channel.bindQueue(CART_MAIN_QUEUE, CART_MAIN_EXCHANGE, "cart.update");
 }
 
 module.exports = {

@@ -7,7 +7,7 @@ const couponServ = require("../services/coupon.service");
 const { calcDiscountedPrice } = require("./calculate.discount");
 const Order = require("../models/order.Model");
 const ShippingRate = require("../models/shipping.cost.model");
-const { saveCartJob } = require("../utils/queues");
+const { publishCartSync } = require("../producers/cart.producer");
 const stripePayment = require("./stripe_utils/payment.stripe");
 
 // Constants for pricing (can be moved to config later)
@@ -300,8 +300,9 @@ exports.checkOut = async (req) => {
       shippingAdress: address,
     };
     cart.paymentData = data;
+    cart.syncToken = Date.now().toString();
     await cacheRedis(`cart_${userId}`, cart);
-    await saveCartJob(userId);
+    await publishCartSync(userId, cart.syncToken);
   } else {
     data = mycart.paymentData;
   }

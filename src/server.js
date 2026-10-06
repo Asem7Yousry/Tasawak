@@ -23,6 +23,6 @@ DbConnection()
     });
   })
   .catch((err) => {
-    console.error("Error connecting to MongoDB:", err);
+    console.error("Error connecting to MongoDB/RabbitMQ...", err);
     process.exit(1);
   });

@@ -1,12 +1,12 @@
-const {
-  startRabbitMQConfiguration,
-} = require("./rabbitmq/setup");
-const { startOrderConsumer } = require("./consumers/order.consumer");
+const DbConnection = require("./config/database");
+const { setupConsumers } = require("./consumers/setup.consumers");
 
-async function startWorker() {
-  await startRabbitMQConfiguration();
-  await startOrderConsumer();
-  console.log("Worker consumer started...");
-}
-
-startWorker();
+DbConnection()
+  .then(() => {
+    return setupConsumers();
+  })
+  .then(() => {
+  })
+  .catch((err) => {
+    process.exit(1);
+  });

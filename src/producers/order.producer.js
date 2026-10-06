@@ -12,7 +12,6 @@ async function publishOrderCreated(order) {
     age: 26,
     // userId: order.userId
   };
-  console.log("published...")
   channel.publish(
     ORDER_EXCHANGE,
     "order.created",

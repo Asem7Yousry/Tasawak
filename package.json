@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "worker": "node src/worker.js",
+    "worker": "nodemon --legacy-watch src/worker.js",
     "dev": "nodemon --legacy-watch src/server.js",
     "pro": "cross-env NODE_ENV=production nodemon --legacy-watch src/server.js",
     "test": "jest --watchAll"

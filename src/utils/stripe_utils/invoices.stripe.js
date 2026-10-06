@@ -39,7 +39,6 @@ class stripeInvoice {
 
   static async invoicePaymentFailed(object) {
     try {
-      console.log("Handling invoice payment failure for subscription:", object);
     } catch (error) {
       throw new ApiError(
         "Failed to clear user subscription data: " + error.message,
