@@ -5,12 +5,11 @@
   "main": "src/server.js",
   "config": {
     "commitizen": {
-      "path": "git-cz"
+      "path": "cz-conventional-changelog"
     }
   },
   "scripts": {
     "start": "node src/server.js",
-    "commit": "git-cz",
     "worker": "nodemon --legacy-watch src/worker.js",
     "dev": "nodemon --legacy-watch src/server.js",
     "pro": "cross-env NODE_ENV=production nodemon --legacy-watch src/server.js",
@@ -45,7 +44,6 @@
     "@upstash/redis": "^1.36.2",
     "commitizen": "^4.3.2",
     "cz-conventional-changelog": "^3.3.0",
-    "git-cz": "^4.9.0",
     "jest": "^30.5.1",
     "nodemon": "^3.1.11"
   },
