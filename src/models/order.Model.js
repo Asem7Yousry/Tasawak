@@ -34,16 +34,16 @@ const orderSchema = new mongoose.Schema(
     //     _id: false,
     //   },
     // ],
-    paymentMethod: {
+    paymentProvider: {
       type: String,
-      enum: ["cach", "card"],
-      default: "cach",
+      enum: ["cash", "stripe"],
+      default: "cash",
     },
+    paymentMethod: String,
     paymentId: String,
-    isPaid: {
-      type: Boolean,
-      default: false,
-    },
+    paymentStatus: { type: String, enum: ["unpaid", "paid", "failed"], default: "unpaid" },
+    currency: { type: String, default: "egp" },
+    notificationEvents: { type: [String], default: [] },
     paidAt: Date,
     isDelivered: {
       type: Boolean,
@@ -76,7 +76,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "shipping", "delivered", "cancelled"],
+      enum: ["pending", "shipping", "delivered", "canceled"],
       default: "pending",
     },
     canceledAt: Date,

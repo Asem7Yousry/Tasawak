@@ -1,14 +1,24 @@
 const Order = require("../models/order.Model");
-const { QueryListing } = require("../utils/queryListing");
-const { checkOut } = require("../utils/order.methods");
+const cartServ = require("./cart.service");
 const ApiError = require("../utils/apiError");
 const { subscription } = require("../utils/stripe.methods");
 const commonService = require("./common.service");
+const paymentFactory = require("../payments/payment.factory");
 
 class orderService extends commonService {
   async create(req) {
-    const order = await checkOut(req);
-    return order;
+    const userId = req.user._id;
+    // get cart items
+    const cart = await cartServ.getCart(userId);
+    if (!cart || Object.values(cart.items).length === 0) {
+      throw new ApiError("no cart found", 404);
+    }
+    // check payment provider and method from request headers or body
+    const paymentProvider = String(
+      req.body?.paymentprovider || req.headers["paymentprovider"] || "cash",
+    ).toLowerCase();
+    const providerStrategy = paymentFactory.create(paymentProvider);
+    return providerStrategy.initiate({ req, cart });
   }
 
   // get specific order for a user

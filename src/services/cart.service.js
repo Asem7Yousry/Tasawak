@@ -2,7 +2,6 @@ const Cart = require("../models/cartModel");
 const ApiError = require("../utils/apiError");
 const { publishCartSync } = require("../producers/cart.producer");
 const { cacheRedis, delCache, getCache } = require("../utils/redis.methods");
-const { publishOrderCreated } = require("../producers/order.producer");
 
 // to get variation from product
 const getVariation = (product, variationId, newQuantity) => {
@@ -77,6 +76,8 @@ exports.addCartItem = async (userId, variationId, product, quantity = 1) => {
     const piecePrice = variation.piecePrice;
     const attribute = variation.attribute;
     cart.items[variationId] = {
+      productId: product._id.toString(),
+      variationId: variationId.toString(),
       quantity,
       productName,
       piecePrice,

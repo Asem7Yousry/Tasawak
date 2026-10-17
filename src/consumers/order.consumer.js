@@ -1,7 +1,7 @@
 // consumer for order created messages from RabbitMQ
 const { getChannel } = require("../config/rabbitmq");
-
 const { ORDER_CREATED_QUEUE } = require("../rabbitmq/queues");
+// const { notify } = require("../utils/orderNotifications");
 
 async function startOrderConsumer() {
   const channel = getChannel();
@@ -12,17 +12,11 @@ async function startOrderConsumer() {
 
     try {
       const data = JSON.parse(message.content.toString());
-
-
-
-      // Business logic
-      // send email
-      // update inventory
-      // etc...
-
+      // await notify(data);
       channel.ack(message);
     } catch (error) {
-
+      console.error("Failed to handle order event", error);
+      channel.nack(message, false, true);
     }
   });
 }

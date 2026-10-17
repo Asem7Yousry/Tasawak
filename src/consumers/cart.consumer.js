@@ -14,10 +14,10 @@ async function startCartConsumer() {
       if (msg !== null) {
         try {
           const payload = JSON.parse(msg.content.toString());
-          const { userId, syncToken } = payload;
+          const { syncToken, ...restCart } = payload;
 
           // Fetch the latest cart state from Redis
-          let cart = await cartService.getCart(userId);
+          let cart = await cartService.getCart(restCart.userId);
 
           if (!cart) {
             channel.ack(msg);
@@ -32,9 +32,7 @@ async function startCartConsumer() {
 
           // Synchronize to MongoDB using existing update method
           // The updateByUserId method updates MongoDB.
-          await cartService.updateById(cart._id, cart);
-
-
+          await cartService.updateById(cart._id, restCart);
           channel.ack(msg);
         } catch (error) {
           // Reject message. It will be re-queued or dropped depending on existing config.

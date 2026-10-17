@@ -23,7 +23,7 @@ async function setupBindings() {
   await channel.bindQueue(
     PAYMENT_COMPLETED_QUEUE,
     PAYMENT_EXCHANGE,
-    "payment.completed",
+    "payment.#",
   );
 
   await channel.bindQueue(CART_DELAY_QUEUE, CART_DELAY_EXCHANGE, "cart.delay");

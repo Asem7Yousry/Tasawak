@@ -24,7 +24,7 @@ const cartSchema = new mongoose.Schema(
     },
     couponDiscount: Number, // Original discount value from coupon
     discountAmount: Number, // Actual discount amount applied
-    totalAfterDiscount: Number, // Total after discount but before tax/shipping
+    // totalAfterDiscount: Number, // Total after discount but before tax/shipping
     shippingPrice: Number,
     totalPrice: { type: Number, default: 0, min: 0 },
     address: Object,

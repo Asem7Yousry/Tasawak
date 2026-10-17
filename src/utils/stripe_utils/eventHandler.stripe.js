@@ -16,14 +16,14 @@ class stripeEventHandler {
         signature,
         SigningSecret,
       );
-      const message = await this.handleEvent(event);
-      return res.status(200).json({ received: true, message });
     } catch (err) {
       throw new ApiError(
-        "Webhook signature verification failed." + err.message,
+        "Webhook signature verification failed.",
         400,
       );
     }
+    const message = await this.handleEvent(event);
+    return res.status(200).json({ received: true, message });
   }
 
   static async handleEvent(event) {
