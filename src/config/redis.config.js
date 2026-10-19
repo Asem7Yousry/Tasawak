@@ -1,4 +1,3 @@
-require("dotenv").config();
 const IORedis = require("ioredis");
 
 const redis = new IORedis({
@@ -17,4 +16,3 @@ redis.on("error", (err) => {
 });
 
 module.exports = redis;
-

@@ -1,21 +1,20 @@
+require("dotenv").config();
+
 const express = require("express");
-const ENV = require("dotenv");
+const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
-const ApiError = require("./utils/apiError");
-const errorHandellingMiddleWare = require("./middlewares/errorMiddlWare");
-const allRoutes = require("./config/mainRotes");
-const cors = require("cors");
 const compression = require("compression");
+const ApiError = require("./utils/apiError");
+const errorHandelingMiddleWare = require("./middlewares/errorMiddlWare");
+const allRoutes = require("./config/mainRotes");
 
-ENV.config();
-
-// some constants
+// initialize express object
 const app = express();
+
 // middleware configuration
 app.use(cors());
 app.use(compression());
-// app.use(express.json());
 app.use((req, res, next) => {
   if (req.originalUrl === "/api/order/webhook-completed") {
     next();
@@ -23,12 +22,11 @@ app.use((req, res, next) => {
     express.json()(req, res, next);
   }
 });
-app.use(express.urlencoded());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
-
 // tell express to parse (read) query string nestedly from urls
 app.set("query parser", "extended");
 
@@ -41,6 +39,6 @@ app.all("/*path", (req, res, next) => {
 });
 
 // error handlling middleware for express
-app.use(errorHandellingMiddleWare);
+app.use(errorHandelingMiddleWare);
 
 module.exports = app;

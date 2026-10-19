@@ -1,15 +1,15 @@
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const stripe = require("../../config/stripe.config");
 const ApiError = require("../apiError");
-const Order = require("../../models/order.Model");
 const cartServ = require("../../services/cart.service");
+const paymentLifecycle = require("../../payments/payment.lifecycle");
 
 class stripePayment {
   static async createPaymentIntent(data) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: data.totalAmount * 100,
-      currency: data.currency,
+      currency: data.currency || "egp",
       automatic_payment_methods: { enabled: true },
-      metadata: { orderId: data.orderId, isDelivered: false },
+      metadata: { isDelivered: false, orderId: data.orderId, email: data.email },
     });
     return paymentIntent;
   }
@@ -27,14 +27,17 @@ class stripePayment {
       success_url: `${frontendUrl}${successUrlPath}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}${cancelUrlPath}`,
       client_reference_id: data.orderId,
+      metadata: { orderId: data.orderId },
       customer_email: req.user.email,
-      shipping_options: [{ shipping_rate: data.shippingId }],
+      // shipping_options: [{ shipping_rate: data.shippingId }],
       payment_intent_data: {
-        metadata: { orderId: data.orderId, isDelivered: false },
+        metadata: { orderId: data.orderId, isDelivered: false, email: req.user.email },
       },
-      discounts: {
-        coupon: data?.couponId,
-      },
+      // Stripe expects discounts to be an array. The coupon value must be a
+      // Stripe Coupon ID; a MongoDB coupon _id is not valid.
+      ...(data?.stripeCouponId
+        ? { discounts: [{ coupon: data.stripeCouponId }] }
+        : {}),
     });
     return session;
   }
@@ -47,18 +50,14 @@ class stripePayment {
       ) {
         return true;
       }
-      const orderId = object?.client_reference_id || object.metadata.orderId;
-      let order = await Order.findByIdAndUpdate(
+      const orderId = object?.client_reference_id || object?.metadata?.orderId;
+      if (!orderId) throw new Error("Payment is missing its order reference");
+      const order = await paymentLifecycle.markPaid({
         orderId,
-        {
-          isPaid: true,
-          paidAt: new Date(),
-          status: "shipping",
-          paymentId: object.id,
-        },
-        { new: true },
-      );
-      await cartServ.deleteCart(order.userId.toString());
+        paymentId: object.id,
+        provider: "stripe",
+      });
+      if (order.isPaid) await cartServ.deleteCart(order.userId.toString());
     } catch (err) {
       throw new ApiError(
         `Failed to handle payment success: ${err.message}`,
@@ -69,8 +68,9 @@ class stripePayment {
 
   static async handlePaymentFailed(object) {
     try {
-      const orderId = object?.client_reference_id || object.metadata.orderId;
-      // send email there to notify user about failed payment
+      const orderId = object?.client_reference_id || object?.metadata?.orderId;
+      if (!orderId) throw new Error("Payment is missing its order reference");
+      return await paymentLifecycle.markFailed({ orderId, paymentId: object.id, provider: "stripe" });
     } catch (err) {
       throw new ApiError(
         `Failed to handle payment failure: ${err.message}`,
@@ -90,6 +90,47 @@ class stripePayment {
         500,
       );
     }
+  }
+
+  static buildStripeLineItems(items, currency = "egp") {
+    if (!items || typeof items !== "object" || Array.isArray(items)) {
+      throw new ApiError("Cart items are invalid for Stripe Checkout", 400);
+    }
+
+    const lineItems = Object.values(items).map((item) => {
+      const quantity = Number(item.quantity);
+      const unitAmount = Math.round(Number(item.piecePrice) * 100);
+      const productName = String(item.productName || "Product").trim();
+      const attribute = item.attribute;
+      const description = attribute && typeof attribute === "object"
+        ? Object.entries(attribute).map(([key, value]) => `${key}: ${value}`).join(", ")
+        : attribute ? String(attribute) : undefined;
+
+      if (!Number.isInteger(quantity) || quantity < 1 || !Number.isInteger(unitAmount) || unitAmount < 1) {
+        throw new ApiError(`Invalid quantity or price for ${productName}`, 400);
+      }
+
+      return {
+        quantity,
+        price_data: {
+          currency: String(currency).toLowerCase(),
+          unit_amount: unitAmount,
+          product_data: {
+            name: productName,
+            ...(description ? { description } : {}),
+            metadata: {
+              productId: String(item.productId || ""),
+              variationId: String(item.variationId || ""),
+            },
+          },
+        },
+      };
+    });
+
+    if (!lineItems.length) {
+      throw new ApiError("Cannot create a Stripe Checkout Session with an empty cart", 400);
+    }
+    return lineItems;
   }
 }
 

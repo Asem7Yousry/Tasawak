@@ -1,32 +1,16 @@
 const { productVariation } = require("../models/productModel");
-const { getCache, cacheRedis } = require("../utils/redis.methods");
+const commonService = require("./common.service");
 
-///////////// product variations services ////////////////
-exports.getById = async (productVariationId) => {
-  let variation = await getCache(`variation_${productVariationId}`);
-  if (!variation) {
-    variation = await productVariation.findById(productVariationId);
-    await cacheRedis(`variation_${productVariationId}`, variation);
+class productVariationServices extends commonService {
+  create(req) {
+    let data = req.body;
+    data["productId"] = req.params.productID;
+    return this.model.create(data);
   }
-  return variation;
-};
 
-exports.create = (req) => {
-  let data = req.body;
-  data["productId"] = req.params.productID;
-  return productVariation.create(data);
-};
+  bulkWrite(operations) {
+    this.model.bulkWrite(operations);
+  }
+}
 
-exports.updateById = (productVariationId, updates) => {
-  let { _id, ...data } = updates;
-  return productVariation.findByIdAndUpdate(productVariationId, data, {
-    new: true,
-    runValidators: true,
-  });
-};
-
-exports.deleteById = async (productVariationId) => {
-  return productVariation.findOneAndDelete({ _id: productVariationId });
-};
-
-exports.bulkWrite = (operations) => productVariation.bulkWrite(operations);
+module.exports = new productVariationServices(productVariation);
