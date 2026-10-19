@@ -1,8 +1,9 @@
 // src/producers/order.producer.js
 const { getChannel } = require("../config/rabbitmq");
 const { ORDER_EXCHANGE, PAYMENT_EXCHANGE } = require("../rabbitmq/exchanges");
+const { ORDER_CANCEL_DELAY_MS } = require("../rabbitmq/queues");
 
-async function publishOrderEvent(eventName, payload) {
+async function publishOrderEvent(eventName, payload, options = {}) {
   const channel = getChannel();
   const isPaymentEvent = eventName.startsWith("payment.");
   channel.publish(
@@ -12,13 +13,14 @@ async function publishOrderEvent(eventName, payload) {
     {
       persistent: true,
       contentType: "application/json",
+      ...options,
     },
   );
 }
 
 async function publishOrderCreated(order, user, eventName = "order.created") {
   const price = order.totalAfterDiscount || order.totalPrice;
-  return publishOrderEvent(eventName, {
+  const payload = {
     order,
     paymentProvider: order.paymentProvider,
     totalPrice: price,
@@ -26,7 +28,14 @@ async function publishOrderCreated(order, user, eventName = "order.created") {
     userEmail: user.email,
     first_name: user.fullName?.first_name,
     last_name: user.fullName?.last_name,
-  });
+  };
+  if (order.paymentProvider != "cash") {
+    const orderCreatedAt = new Date(order.createdAt || Date.now()).getTime();
+    const remainingDelay = Math.max(0, orderCreatedAt + ORDER_CANCEL_DELAY_MS - Date.now());
+    await publishOrderEvent("order.cancel.delay", { orderId: order._id.toString() }, { expiration: String(remainingDelay) });
+  }
+  await publishOrderEvent("order.created", payload);
+  if (eventName !== "order.created") await publishOrderEvent(eventName, payload);
 }
 
 module.exports = {

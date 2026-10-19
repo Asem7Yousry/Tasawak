@@ -1,7 +1,7 @@
 const { getChannel } = require("../config/rabbitmq");
 const { PAYMENT_COMPLETED_QUEUE } = require("../rabbitmq/queues");
-// const { notify } = require("../utils/orderNotifications");
 const { deleteCart } = require("../services/cart.service");
+const { notify } = require("../utils/orderNotifications");
 
 async function startPaymentConsumer() {
   const channel = getChannel();
@@ -9,8 +9,17 @@ async function startPaymentConsumer() {
     if (!message) return;
     try {
       const event = JSON.parse(message.content.toString());
-      // await notify(event);
-      await deleteCart(event.userId);
+      const notificationEvent = {
+        "payment.succeeded": "payment.success",
+        "payment.failed": "payment.failure",
+      }[event.eventName] || event.eventName;
+      if (notificationEvent === "payment.success" || notificationEvent === "payment.failure") {
+        await notify({ ...event, eventName: notificationEvent });
+      }
+      const paymentCreated = notificationEvent.endsWith(".created");
+      if ((notificationEvent === "payment.success" || paymentCreated) && event.userId) {
+        await deleteCart(event.userId);
+      }
       channel.ack(message);
     } catch (error) {
       console.error("Failed to handle payment event", error);

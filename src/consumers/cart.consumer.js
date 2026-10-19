@@ -1,6 +1,6 @@
 const { getChannel } = require("../config/rabbitmq");
 const { CART_MAIN_QUEUE } = require("../rabbitmq/queues");
-const cartService = require("../services/cart.service");
+const { updateById, checkCachedCart } = require("../services/cart.service");
 
 async function startCartConsumer() {
   const channel = getChannel();
@@ -14,10 +14,9 @@ async function startCartConsumer() {
       if (msg !== null) {
         try {
           const payload = JSON.parse(msg.content.toString());
-          const { syncToken, ...restCart } = payload;
-
+          const { syncToken, userId } = payload;
           // Fetch the latest cart state from Redis
-          let cart = await cartService.getCart(restCart.userId);
+          let cart = await checkCachedCart(userId);
 
           if (!cart) {
             channel.ack(msg);
@@ -32,7 +31,8 @@ async function startCartConsumer() {
 
           // Synchronize to MongoDB using existing update method
           // The updateByUserId method updates MongoDB.
-          await cartService.updateById(cart._id, restCart);
+          let { syncToken: token, ...newCart } = cart;
+          await updateById(cart._id, newCart);
           channel.ack(msg);
         } catch (error) {
           // Reject message. It will be re-queued or dropped depending on existing config.

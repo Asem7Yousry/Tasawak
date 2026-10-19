@@ -79,7 +79,7 @@ module.exports = {
       value: "release",
     },
     style: {
-      description: "Markup, white-space, formatting, missing semi-colons...",
+      description: "Markup, white-space, formatting, missing semii-colons...",
       emoji: "💄",
       value: "style",
     },

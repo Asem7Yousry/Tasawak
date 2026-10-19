@@ -13,12 +13,16 @@ const {
   PAYMENT_COMPLETED_QUEUE,
   CART_DELAY_QUEUE,
   CART_MAIN_QUEUE,
+  ORDER_CANCEL_DELAY_QUEUE,
+  ORDER_CANCEL_QUEUE,
 } = require("./queues");
 
 async function setupBindings() {
   const channel = getChannel();
 
   await channel.bindQueue(ORDER_CREATED_QUEUE, ORDER_EXCHANGE, "order.created");
+  await channel.bindQueue(ORDER_CANCEL_DELAY_QUEUE, ORDER_EXCHANGE, "order.cancel.delay");
+  await channel.bindQueue(ORDER_CANCEL_QUEUE, ORDER_EXCHANGE, "order.cancel");
 
   await channel.bindQueue(
     PAYMENT_COMPLETED_QUEUE,

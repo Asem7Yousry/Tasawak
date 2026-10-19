@@ -14,14 +14,12 @@ class CashPaymentStrategy {
       orderData.paymentMethod = paymentMethod;
       orderData.status = "shipping";
       const order = await Order.create(orderData);
-      const totalPrice = order.totalAfterDiscount ? order.totalAfterDiscount : order.totalPrice;
       await publishOrderCreated(order, req.user, "payment.cash.created");
       return {
         order: order,
         paymentProvider: "cash",
         paymentRequired: false,
-        status: order.status,
-        totalPrice,
+        status: "shipping",
       };
     }
     catch (error) {

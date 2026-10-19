@@ -1,5 +1,5 @@
 const Order = require("../models/order.Model");
-const cartServ = require("./cart.service");
+const { getCart } = require("./cart.service");
 const ApiError = require("../utils/apiError");
 const { subscription } = require("../utils/stripe.methods");
 const commonService = require("./common.service");
@@ -9,7 +9,7 @@ class orderService extends commonService {
   async create(req) {
     const userId = req.user._id;
     // get cart items
-    const cart = await cartServ.getCart(userId);
+    const cart = await getCart(userId);
     if (!cart || Object.values(cart.items).length === 0) {
       throw new ApiError("no cart found", 404);
     }
@@ -25,7 +25,7 @@ class orderService extends commonService {
   async getMyOrder(req, searchData = {}) {
     searchData._id = req.params["orderId"];
     searchData.userId = req.user._id;
-    const order = await Order.findOne(searchData);
+    const order = await this.model.findOne(searchData);
     if (!order) {
       throw new ApiError("not permitted", 403);
     }
@@ -34,7 +34,7 @@ class orderService extends commonService {
 
   // cancel order
   async cancelOrder(orderId) {
-    const order = await Order.findOneAndUpdate(
+    const order = await this.model.findOneAndUpdate(
       { _id: orderId },
       { status: "canceled", canceledAt: new Date() },
       { new: true },

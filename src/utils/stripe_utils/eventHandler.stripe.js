@@ -32,32 +32,26 @@ class stripeEventHandler {
         // Handle successful payment intent
         await stripePayment.handlePaymentSuccess(event.data.object);
         return "Payment processed successfully.";
-        break;
       case "payment_intent.payment_failed":
         // Handle failed payment intent
         await stripePayment.handlePaymentFailed(event.data.object);
         return "Payment failed.";
-        break;
       case "charge.refunded":
         // Handle refunded successfully
         await stripeRefund.handleRefundSucceeded(event.data.object);
         return "Refund processed successfully.";
-        break;
       case "refund.failed":
         // Handle failed refund
         await stripeRefund.handleRefundFailed(event.data.object);
         return "Refund failed.";
-        break;
       case "invoice.paid":
         // Handle successful invoice payment
         await stripeSubscription.invoiceSucceeded(event.data.object);
         return "Invoice payment succeeded.";
-        break;
       case "invoice.payment_failed":
         // Handle failed invoice payment
         await stripeSubscription.invoicePaymentFailed(event.data.object);
         return "Invoice payment failed.";
-        break;
       default:
         return `Unhandled event type: ${event.type}`;
     }

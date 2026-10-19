@@ -18,6 +18,14 @@ const getVariation = (product, variationId, newQuantity) => {
   return variation;
 };
 
+// check if cart exists or not in cache 
+exports.checkCachedCart = async (userId) => {
+  // get cart from redis if it was cached
+  let cart = await getCache(`cart_${userId}`);
+  if (cart) return cart
+  return null
+}
+
 // create new cart for each user
 exports.createCart = (data) => Cart.create(data);
 
@@ -34,6 +42,8 @@ exports.getCart = async (userId) => {
     }
     let { createdAt, updatedAt, __v, ...restCart } = cart["_doc"];
     cart = restCart;
+    // save cart in Redis
+    await cacheRedis(cartKey, cart);
   }
   // check if cart has already not paied order
   if (cart.paymentData) {
@@ -42,8 +52,6 @@ exports.getCart = async (userId) => {
       400,
     );
   }
-  // save cart in Redis
-  await cacheRedis(cartKey, cart);
   return cart;
 };
 

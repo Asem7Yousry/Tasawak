@@ -1,3 +1,4 @@
+require("dotenv").config();
 const DbConnection = require("./config/database");
 const { setupConsumers } = require("./consumers/setup.consumers");
 

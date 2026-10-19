@@ -5,15 +5,15 @@ const { publishOrderEvent } = require("../producers/order.producer");
 class PaymentLifecycle {
   static async markPaid({ orderId, paymentId, provider }) {
     const order = await Order.findOneAndUpdate(
-      { _id: orderId, isPaid: { $ne: true } },
+      { _id: orderId, isPaid: { $ne: true }, status: { $ne: "canceled" } },
       {
         $set: {
           isPaid: true,
           paymentStatus: "paid",
           paidAt: new Date(),
-          status: "pending",
+          status: "shipped",
           paymentId,
-          paymentMethod: provider,
+          paymentProvider: provider,
         },
       },
       { new: true },
@@ -27,7 +27,7 @@ class PaymentLifecycle {
       return existing;
     }
 
-    await publishOrderEvent("payment.succeeded", {
+    await publishOrderEvent("payment.success", {
       orderId: order._id.toString(),
       paymentId,
       paymentProvider: provider,
@@ -39,8 +39,8 @@ class PaymentLifecycle {
 
   static async markFailed({ orderId, paymentId, provider }) {
     const order = await Order.findOneAndUpdate(
-      { _id: orderId, isPaid: { $ne: true }, paymentStatus: { $ne: "failed" } },
-      { $set: { paymentStatus: "failed", paymentId, paymentMethod: provider } },
+      { _id: orderId, isPaid: { $ne: true }, status: { $ne: "canceled" }, paymentStatus: { $ne: "failed" } },
+      { $set: { paymentStatus: "failed", paymentId, paymentProvider: provider } },
       { new: true },
     );
     if (!order) {
@@ -48,7 +48,7 @@ class PaymentLifecycle {
       if (!existing) throw new ApiError("Order not found", 404);
       return existing;
     }
-    await publishOrderEvent("payment.failed", {
+    await publishOrderEvent("payment.failure", {
       orderId: order._id.toString(), paymentId, paymentProvider: provider,
       userId: order.userId.toString(), totalPrice: order.totalPrice,
     });

@@ -1,14 +1,13 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const compression = require("compression");
-const ENV = require("dotenv");
 const ApiError = require("./utils/apiError");
 const errorHandelingMiddleWare = require("./middlewares/errorMiddlWare");
 const allRoutes = require("./config/mainRotes");
-
-ENV.config();
 
 // initialize express object
 const app = express();
