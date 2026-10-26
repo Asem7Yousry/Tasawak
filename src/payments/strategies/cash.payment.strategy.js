@@ -1,20 +1,19 @@
 const Order = require("../../models/order.Model");
 const ApiError = require("../../utils/apiError");
-const { publishOrderCreated } = require("../../producers/order.producer");
+const { publishOrderEvent } = require("../../producers/order.producer");
 
 class CashPaymentStrategy {
   async initiate({ req, cart }) {
     // Cash on delivery needs no provider session. Keep the order unpaid 
     try {
-      const paymentMethod = String(
-        req.body?.paymentmethod || req.headers["paymentmethod"] || "in delivery",
-      ).toLowerCase();
       const { _id, syncToken, ...orderData } = cart;
       orderData.paymentprovider = "cash";
-      orderData.paymentMethod = paymentMethod;
+      orderData.paymentMethod = "in delivery";
       orderData.status = "shipping";
       const order = await Order.create(orderData);
-      await publishOrderCreated(order, req.user, "payment.cash.created");
+      const userId = req.user._id;
+      const orderId = order._id.toString();
+      await publishOrderEvent("order.created", { orderId, userId });
       return {
         order: order,
         paymentProvider: "cash",

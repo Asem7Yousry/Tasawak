@@ -2,10 +2,6 @@ const nodemailer = require("nodemailer");
 
 let transporter;
 
-function readBoolean(value, fallback = false) {
-  if (value == null || value === "") return fallback;
-  return ["1", "true", "yes", "on"].includes(String(value).trim().toLowerCase());
-}
 
 function getTransporter() {
   const host = process.env.Gmail_Host;

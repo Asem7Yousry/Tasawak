@@ -1,7 +1,6 @@
 const stripe = require("../../config/stripe.config");
 const ApiError = require("../apiError");
-const cartServ = require("../../services/cart.service");
-const paymentLifecycle = require("../../payments/payment.lifecycle");
+const { publishOrderEvent } = require("../../producers/order.producer")
 
 class stripePayment {
   static async createPaymentIntent(data) {
@@ -51,13 +50,9 @@ class stripePayment {
         return true;
       }
       const orderId = object?.client_reference_id || object?.metadata?.orderId;
-      if (!orderId) throw new Error("Payment is missing its order reference");
-      const order = await paymentLifecycle.markPaid({
-        orderId,
-        paymentId: object.id,
-        provider: "stripe",
-      });
-      if (order.isPaid) await cartServ.deleteCart(order.userId.toString());
+      let userEmail = object.metadata.email;
+      if (!orderId || !userEmail) throw new Error("Payment is missing its order reference ID or user email");
+      await publishOrderEvent("payment.success", { orderId, provider: "stripe", paymentId: object.id });
     } catch (err) {
       throw new ApiError(
         `Failed to handle payment success: ${err.message}`,
@@ -70,7 +65,7 @@ class stripePayment {
     try {
       const orderId = object?.client_reference_id || object?.metadata?.orderId;
       if (!orderId) throw new Error("Payment is missing its order reference");
-      return await paymentLifecycle.markFailed({ orderId, paymentId: object.id, provider: "stripe" });
+      await publishOrderEvent("payment.failed", { orderId, provider: "stripe", paymentId: object.id });
     } catch (err) {
       throw new ApiError(
         `Failed to handle payment failure: ${err.message}`,

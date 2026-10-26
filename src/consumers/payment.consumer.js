@@ -1,31 +1,31 @@
 const { getChannel } = require("../config/rabbitmq");
-const { PAYMENT_COMPLETED_QUEUE } = require("../rabbitmq/queues");
-const { deleteCart } = require("../services/cart.service");
-const { notify } = require("../utils/orderNotifications");
+const { PAYMENT_REFUND_QUEUE } = require("../rabbitmq/queues");
+const stripe = require("../config/stripe.config");
 
 async function startPaymentConsumer() {
   const channel = getChannel();
-  await channel.consume(PAYMENT_COMPLETED_QUEUE, async (message) => {
+  channel.prefetch(1);
+
+  await channel.consume(PAYMENT_REFUND_QUEUE, async (message) => {
     if (!message) return;
     try {
       const event = JSON.parse(message.content.toString());
-      const notificationEvent = {
-        "payment.succeeded": "payment.success",
-        "payment.failed": "payment.failure",
-      }[event.eventName] || event.eventName;
-      if (notificationEvent === "payment.success" || notificationEvent === "payment.failure") {
-        await notify({ ...event, eventName: notificationEvent });
+      if (!event.paymentIntentId) throw new Error("Refund message is missing paymentIntentId");
+
+      const refundParams = { payment_intent: event.paymentIntentId };
+      if (Number.isFinite(Number(event.amount)) && Number(event.amount) > 0) {
+        refundParams.amount = Math.round(Number(event.amount) * 100);
       }
-      const paymentCreated = notificationEvent.endsWith(".created");
-      if ((notificationEvent === "payment.success" || paymentCreated) && event.userId) {
-        await deleteCart(event.userId);
-      }
+
+      await stripe.refunds.create(refundParams, {
+        idempotencyKey: event.idempotencyKey || `refund:${event.orderId || event.paymentIntentId}`,
+      });
       channel.ack(message);
     } catch (error) {
-      console.error("Failed to handle payment event", error);
+      console.error("Failed to refund payment", error);
       channel.nack(message, false, true);
     }
-  });
+  }, { noAck: false });
 }
 
 module.exports = { startPaymentConsumer };

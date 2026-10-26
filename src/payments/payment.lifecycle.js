@@ -2,16 +2,15 @@ const Order = require("../models/order.Model");
 const ApiError = require("../utils/apiError");
 const { publishOrderEvent } = require("../producers/order.producer");
 
-class PaymentLifecycle {
+class PaymentLifeCycle {
   static async markPaid({ orderId, paymentId, provider }) {
     const order = await Order.findOneAndUpdate(
-      { _id: orderId, isPaid: { $ne: true }, status: { $ne: "canceled" } },
+      { _id: orderId, paymentStatus: { $ne: "paid" }, status: { $ne: "canceled" } },
       {
         $set: {
-          isPaid: true,
           paymentStatus: "paid",
           paidAt: new Date(),
-          status: "shipped",
+          status: "shipping",
           paymentId,
           paymentProvider: provider,
         },
@@ -26,20 +25,11 @@ class PaymentLifecycle {
       if (!existing) throw new ApiError("Order not found", 404);
       return existing;
     }
-
-    await publishOrderEvent("payment.success", {
-      orderId: order._id.toString(),
-      paymentId,
-      paymentProvider: provider,
-      userId: order.userId.toString(),
-      totalPrice: order.totalPrice,
-    });
-    return order;
   }
 
   static async markFailed({ orderId, paymentId, provider }) {
     const order = await Order.findOneAndUpdate(
-      { _id: orderId, isPaid: { $ne: true }, status: { $ne: "canceled" }, paymentStatus: { $ne: "failed" } },
+      { _id: orderId, status: { $ne: "canceled" }, paymentStatus: { $ne: "failed" } },
       { $set: { paymentStatus: "failed", paymentId, paymentProvider: provider } },
       { new: true },
     );
@@ -48,12 +38,8 @@ class PaymentLifecycle {
       if (!existing) throw new ApiError("Order not found", 404);
       return existing;
     }
-    await publishOrderEvent("payment.failure", {
-      orderId: order._id.toString(), paymentId, paymentProvider: provider,
-      userId: order.userId.toString(), totalPrice: order.totalPrice,
-    });
-    return order;
+    await publishOrderEvent("order.failed.pay", { orderId: order._id })
   }
 }
 
-module.exports = PaymentLifecycle;
+module.exports = PaymentLifeCycle;

@@ -5,3 +5,4 @@ commands.txt
 .dockerignore
 docker/docker-compose.dev.yml
 testPattern
+__test__/

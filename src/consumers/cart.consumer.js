@@ -1,53 +1,42 @@
 const { getChannel } = require("../config/rabbitmq");
-const { CART_MAIN_QUEUE } = require("../rabbitmq/queues");
-const { updateById, checkCachedCart } = require("../services/cart.service");
+const { CART_MAIN_QUEUE, CART_DELETE_QUEUE } = require("../rabbitmq/queues");
+const { updateById, checkCachedCart, deleteCart } = require("../services/cart.service");
 
 async function startCartConsumer() {
   const channel = getChannel();
-
-  // prefetch 1 to distribute load
   channel.prefetch(1);
 
-  channel.consume(
-    CART_MAIN_QUEUE,
-    async (msg) => {
-      if (msg !== null) {
-        try {
-          const payload = JSON.parse(msg.content.toString());
-          const { syncToken, userId } = payload;
-          // Fetch the latest cart state from Redis
-          let cart = await checkCachedCart(userId);
-
-          if (!cart) {
-            channel.ack(msg);
-            return;
-          }
-
-          // Deduplication: If the syncToken doesn't match, a newer update exists
-          if (cart.syncToken !== syncToken) {
-            channel.ack(msg);
-            return;
-          }
-
-          // Synchronize to MongoDB using existing update method
-          // The updateByUserId method updates MongoDB.
-          let { syncToken: token, ...newCart } = cart;
-          await updateById(cart._id, newCart);
-          channel.ack(msg);
-        } catch (error) {
-          // Reject message. It will be re-queued or dropped depending on existing config.
-          // Since we want standard retry, we can reject with requeue=false (if DLX is set up for errors)
-          // or requeue=true for immediate retry. Let's requeue for now.
-          channel.reject(msg, true);
-        }
+  await channel.consume(CART_MAIN_QUEUE, async (message) => {
+    if (!message) return;
+    try {
+      const { userId, syncToken } = JSON.parse(message.content.toString());
+      const cart = await checkCachedCart(userId);
+      if (!cart || cart.syncToken !== syncToken) {
+        channel.ack(message);
+        return;
       }
-    },
-    {
-      noAck: false,
-    },
-  );
+
+      const { syncToken: ignoredSyncToken, ...cartData } = cart;
+      await updateById(cart._id, cartData);
+      channel.ack(message);
+    } catch (error) {
+      console.error("Failed to sync cart", error);
+      channel.nack(message, false, true);
+    }
+  }, { noAck: false });
+
+  await channel.consume(CART_DELETE_QUEUE, async (message) => {
+    if (!message) return;
+    try {
+      const { userId } = JSON.parse(message.content.toString());
+      if (!userId) throw new Error("Cart delete message is missing userId");
+      await deleteCart(userId);
+      channel.ack(message);
+    } catch (error) {
+      console.error("Failed to delete queued cart", error);
+      channel.nack(message, false, true);
+    }
+  }, { noAck: false });
 }
 
-module.exports = {
-  startCartConsumer,
-};
+module.exports = { startCartConsumer };

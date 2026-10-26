@@ -1,44 +1,68 @@
-// src/producers/order.producer.js
 const { getChannel } = require("../config/rabbitmq");
-const { ORDER_EXCHANGE, PAYMENT_EXCHANGE } = require("../rabbitmq/exchanges");
-const { ORDER_CANCEL_DELAY_MS } = require("../rabbitmq/queues");
+const { ORDER_EXCHANGE, PAYMENT_EXCHANGE, EMAIL_EXCHANGE } = require("../rabbitmq/exchanges");
+const { publishCartDelete } = require("./cart.producer");
 
-async function publishOrderEvent(eventName, payload, options = {}) {
+function publish(exchange, routingKey, payload, options = {}) {
   const channel = getChannel();
-  const isPaymentEvent = eventName.startsWith("payment.");
-  channel.publish(
-    isPaymentEvent ? PAYMENT_EXCHANGE : ORDER_EXCHANGE,
-    eventName,
-    Buffer.from(JSON.stringify({ eventName, occurredAt: new Date().toISOString(), ...payload })),
+  return channel.publish(
+    exchange,
+    routingKey,
+    Buffer.from(JSON.stringify({ ...payload, occurredAt: new Date().toISOString() })),
+    { persistent: true, contentType: "application/json", ...options },
+  );
+}
+
+function publishEmail(eventName, payload) {
+  return publish(EMAIL_EXCHANGE, "send.email", { eventName, ...payload });
+}
+
+function publishOrderUpdate(eventName, payload) {
+  return publish(ORDER_EXCHANGE, "order.update", { eventName, ...payload });
+}
+
+function publishInventoryRestore(orderId, reason = "canceled") {
+  return publish(ORDER_EXCHANGE, "inventory.restore", { orderId: String(orderId), reason });
+}
+
+function publishRefund(paymentIntentId, amount, orderId) {
+  return publish(
+    PAYMENT_EXCHANGE,
+    "payment.refund",
     {
-      persistent: true,
-      contentType: "application/json",
-      ...options,
+      paymentIntentId,
+      amount,
+      orderId: orderId == null ? undefined : String(orderId),
+      idempotencyKey: `refund:${orderId || paymentIntentId}`,
     },
   );
 }
 
-async function publishOrderCreated(order, user, eventName = "order.created") {
-  const price = order.totalAfterDiscount || order.totalPrice;
-  const payload = {
-    order,
-    paymentProvider: order.paymentProvider,
-    totalPrice: price,
-    userId: user._id.toString(),
-    userEmail: user.email,
-    first_name: user.fullName?.first_name,
-    last_name: user.fullName?.last_name,
-  };
-  if (order.paymentProvider != "cash") {
-    const orderCreatedAt = new Date(order.createdAt || Date.now()).getTime();
-    const remainingDelay = Math.max(0, orderCreatedAt + ORDER_CANCEL_DELAY_MS - Date.now());
-    await publishOrderEvent("order.cancel.delay", { orderId: order._id.toString() }, { expiration: String(remainingDelay) });
+async function publishOrderEvent(eventName, payload, options = {}) {
+  if (eventName === "payment.success" || eventName === "payment.failed") {
+    await publishEmail(eventName, payload);
+    await publishOrderUpdate(eventName, payload);
+    return;
   }
-  await publishOrderEvent("order.created", payload);
-  if (eventName !== "order.created") await publishOrderEvent(eventName, payload);
+  if (eventName === "order.created") {
+    await publishEmail(eventName, payload);
+    await publishCartDelete(payload.userId);
+    return;
+  }
+  if (eventName === "order.failed.pay") {
+    return publish(ORDER_EXCHANGE, "order.failed.pay", payload, options);
+  }
+  return publish(ORDER_EXCHANGE, eventName, payload, options);
+}
+
+function publishPasswordOtp(email, otp) {
+  return publishEmail("password.otp", { email, otp: String(otp) });
 }
 
 module.exports = {
+  publishEmail,
   publishOrderEvent,
-  publishOrderCreated,
+  publishOrderUpdate,
+  publishInventoryRestore,
+  publishRefund,
+  publishPasswordOtp,
 };

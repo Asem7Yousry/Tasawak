@@ -1,31 +1,31 @@
 const { getChannel } = require("../config/rabbitmq");
-const { CART_DELAY_EXCHANGE } = require("../rabbitmq/exchanges");
+const { CART_EXCHANGE } = require("../rabbitmq/exchanges");
 
-async function publishCartSync(userId, syncToken) {
+function publishCartSync(userId, syncToken) {
   const channel = getChannel();
+  const expirationSeconds = Number(process.env.Redis_Expriation_Time) || 604800;
+  const delayMs = Math.max(0, (expirationSeconds - 180) * 1000);
 
-  const payload = {
-    userId,
-    syncToken,
-  };
-
-  // Delay by (Redis_Expriation_Time - 180 seconds)
-  // If not provided in env, fallback to 7 days (604800s) minus 3 minutes (180s)
-  const expirationTime = Number(process.env.Redis_Expriation_Time) || 604800;
-  const delayMs = (expirationTime - 180) * 1000;
-  const expiration = Math.max(0, delayMs).toString();
-
-  channel.publish(
-    CART_DELAY_EXCHANGE,
+  return channel.publish(
+    CART_EXCHANGE,
     "cart.delay",
-    Buffer.from(JSON.stringify(payload)),
+    Buffer.from(JSON.stringify({ userId: String(userId), syncToken })),
     {
       persistent: true,
-      expiration: expiration,
+      contentType: "application/json",
+      expiration: String(delayMs),
     },
   );
 }
 
-module.exports = {
-  publishCartSync,
-};
+function publishCartDelete(userId) {
+  const channel = getChannel();
+  return channel.publish(
+    CART_EXCHANGE,
+    "cart.delete",
+    Buffer.from(JSON.stringify({ userId: String(userId) })),
+    { persistent: true, contentType: "application/json" },
+  );
+}
+
+module.exports = { publishCartSync, publishCartDelete };

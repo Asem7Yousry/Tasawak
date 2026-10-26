@@ -1,270 +1,135 @@
-# Tasawak - Backend E-Commerce System
+# Tasawak
 
-A comprehensive Node.js e-commerce backend application built with Express.js, MongoDB, and Redis. Tasawak provides a complete solution for managing products, users, categories, brands, carts, orders, and more.
+Tasawak is a Node.js e-commerce API built with Express 5 and MongoDB. It supports product catalogs and variations, customer accounts, carts, discounts, orders, Stripe payments and subscriptions, and asynchronous order and email processing.
 
-## 🚀 Features
+## Features
 
-- **User Management**: User registration, authentication, and profile management with JWT
-- **Product Catalog**: Complete product management with categories, subcategories, and brands
-- **Shopping Cart**: Add/remove items, manage quantities, and cart persistence
-- **Coupons & Discounts**: Apply promotional codes and calculate discounts
-- **Order Processing**: Order creation and management
-- **Email Notifications**: OTP verification and order confirmations via email
-- **Caching**: Redis integration for improved performance
-- **Job Queue**: BullMQ for asynchronous task processing
-- **Request Validation**: Comprehensive input validation with Express Validator
-- **Error Handling**: Centralized error handling middleware
-- **Security**: Password encryption with bcryptjs, JWT authentication
+- Customer signup, login, token refresh, profile management, and OTP-based password recovery.
+- Product, variation, category, brand, shipping-cost, and subscription-plan management.
+- Cart operations with Redis caching, MongoDB persistence, coupon discounts, and address-based shipping.
+- Checkout with cash on delivery or Stripe Checkout and PaymentIntents.
+- Stripe webhooks for payment, refund, and subscription events.
+- RabbitMQ-backed asynchronous processing for cart synchronization, order and payment updates, refunds, inventory restoration, and email notifications.
+- Delayed cancellation of eligible unpaid orders, with inventory restoration.
+- Centralized request validation and error handling.
 
-## 🛠️ Tech Stack
+## Requirements
 
-### Core Framework
-- **Express.js** - Web application framework
-- **Node.js** - JavaScript runtime
+- Node.js `^22.18.0` and npm.
+- MongoDB. Use a deployment that supports transactions for order inventory restoration.
+- Redis.
+- RabbitMQ.
+- Stripe credentials for Stripe checkout, subscriptions, and webhook processing.
+- SMTP credentials for email delivery.
 
-### Database & Caching
-- **MongoDB** - NoSQL database with Mongoose ODM
-- **Redis** - In-memory data store for caching
+## Setup
 
-### Authentication & Security
-- **JWT (jsonwebtoken)** - Token-based authentication
-- **bcryptjs** - Password hashing
-- **dotenv** - Environment variable management
+Install dependencies:
 
-### Background Jobs & Email
-- **BullMQ** - Job queue system
-- **Nodemailer** - Email service
-- **node-cron** - Scheduled task runner
+```sh
+npm install
+```
 
-### Utilities
-- **Morgan** - HTTP request logger
-- **Express Validator** - Input validation
-- **Slugify** - URL-friendly string conversion
-- **Express Async Handler** - Async error handling
+Create a `.env` file in the repository root and configure the variables your enabled features require. The application loads this file through dotenv.
 
-## 📋 Prerequisites
+| Variable | Purpose |
+| --- | --- |
+| `PORT` | HTTP server port; defaults to `8000`. |
+| `NODE_ENV` | Set to `development` to enable Morgan request logging. |
+| `DB_URI` | MongoDB connection URI. |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Redis connection settings. |
+| `RABBITMQ_URL` | AMQP connection URL. |
+| `SECRET_KEY`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN` | JWT signing and expiration settings. |
+| `STRIPE_SECRET_KEY` | Stripe API secret key. |
+| `SIGNING_SECRET` or `LOCAL_SIGNING_SECRET` | Stripe webhook signing secret. |
+| `Gmail_Host`, `Gmail_Port`, `Gmail_User`, `Gmail_Password` | SMTP server and authentication settings used by the mailer. |
+| `Email` | Optional sender address; defaults to `Gmail_User`. |
+| `FRONTEND_URL`, `CHECKOUT_SUCCESS_PATH`, `CHECKOUT_CANCEL_PATH` | Stripe checkout redirect URLs. Checkout paths have application defaults. |
+| `ORDER_CANCEL_DELAY_MS` | RabbitMQ message TTL used for delayed unpaid-order processing. |
+| `Redis_Expriation_Time` | Cart cache lifetime in seconds. Preserve this spelling when configuring it. |
+| `Expriation_Time` | Password-reset OTP lifetime in milliseconds. Preserve this spelling when configuring it. |
+| `ALGORITHEM`, `DIGEST` | Node crypto algorithm and digest encoding used to hash password-reset OTPs. |
 
-Before you begin, ensure you have the following installed:
-- **Node.js** (v14 or higher)
-- **npm** (v6 or higher)
-- **MongoDB** (local or cloud instance)
-- **Redis** (local or cloud instance)
+Keep credentials in local environment configuration or your deployment's secret store; do not commit them.
 
-## 📦 Installation
+## Run the application
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd Tasawak
-   ```
+Start the HTTP API in development mode:
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Create a `.env` file** in the root directory
-   ```bash
-   cp .env.example .env
-   ```
-
-4. **Configure your environment variables** in `.env`:
-   ```
-   NODE_ENV=development
-   PORT=8000
-   
-   # MongoDB
-   MONGODB_URI=mongodb://localhost:27017/ecommerce
-   
-   # Redis
-   REDIS_URL=redis://localhost:6379
-   
-   # JWT
-   JWT_SECRET=your_jwt_secret_key
-   JWT_EXPIRE=7d
-   
-   # Email Service
-   EMAIL_HOST=your_email_provider
-   EMAIL_USER=your_email@example.com
-   EMAIL_PASSWORD=your_email_password
-   ```
-
-## 🏃 Running the Project
-
-### Development Mode
-```bash
+```sh
 npm run dev
 ```
-Runs the server with Nodemon for automatic restart on file changes.
 
-### Production Mode
-```bash
-npm run production
-```
-Runs the server in production environment with cross-env.
+In a second terminal, start the background worker:
 
-The server will start on the port specified in your `.env` file (default: 8000).
-
-## 📁 Project Structure
-
-```
-Tasawak/
-├── config/              # Configuration files
-│   ├── database.js      # MongoDB connection
-│   ├── mainRoutes.js    # Route aggregation
-│   └── redis.config.js  # Redis configuration
-├── controllers/         # Request handlers
-│   ├── adminService.js
-│   ├── brand.controller.js
-│   ├── product.controller.js
-│   ├── user.controller.js
-│   └── ...
-├── middlewares/         # Express middlewares
-│   ├── errorMiddleware.js
-│   └── ValidatorMiddlewareMethod.js
-├── models/              # Mongoose schemas
-│   ├── userModel.js
-│   ├── productModel.js
-│   ├── categoryModel.js
-│   └── ...
-├── routes/              # API route definitions
-│   ├── user.routes.js
-│   ├── product.routes.js
-│   ├── brand.routes.js
-│   └── ...
-├── services/            # Business logic
-│   ├── user.service.js
-│   ├── product.service.js
-│   └── ...
-├── utils/               # Utility functions
-│   ├── apiError.js
-│   ├── AuthMethods.js
-│   ├── jwtMethod.js
-│   ├── sendEmails.js
-│   └── ...
-├── Validations/         # Request validation rules
-│   ├── userValidationRules.js
-│   ├── productValidationRules.js
-│   └── ...
-├── Views/               # Email templates
-│   └── otp-email.html
-├── app.js              # Express app setup
-├── server.js           # Server entry point
-├── package.json        # Dependencies
-└── README.md           # This file
+```sh
+npm run worker
 ```
 
-## 🔌 API Endpoints Overview
+The API (`src/server.js`) connects to MongoDB and configures RabbitMQ before listening. The worker (`src/worker.js`) connects to MongoDB, configures RabbitMQ, and starts the message consumers. Both processes need the appropriate environment variables and access to their services.
 
-### Users
-- `POST /users/register` - User registration
-- `POST /users/login` - User login
-- `GET /users/profile` - Get user profile
-- `PUT /users/profile` - Update user profile
+Other package scripts:
 
-### Products
-- `GET /products` - List all products
-- `GET /products/:id` - Get product details
-- `POST /products` - Create product (admin)
-- `PUT /products/:id` - Update product (admin)
-- `DELETE /products/:id` - Delete product (admin)
-
-### Categories
-- `GET /categories` - List categories
-- `POST /categories` - Create category (admin)
-- `PUT /categories/:id` - Update category (admin)
-- `DELETE /categories/:id` - Delete category (admin)
-
-### Brands
-- `GET /brands` - List brands
-- `POST /brands` - Create brand (admin)
-- `PUT /brands/:id` - Update brand (admin)
-- `DELETE /brands/:id` - Delete brand (admin)
-
-### Cart
-- `GET /cart` - Get user cart
-- `POST /cart` - Add item to cart
-- `PUT /cart/:id` - Update cart item
-- `DELETE /cart/:id` - Remove item from cart
-
-### Coupons
-- `GET /coupons` - List coupons
-- `POST /coupons` - Create coupon (admin)
-- `PUT /coupons/:id` - Update coupon (admin)
-- `DELETE /coupons/:id` - Delete coupon (admin)
-
-*For detailed API documentation, refer to individual route files in the `routes/` directory.*
-
-## 🔐 Authentication
-
-The API uses JWT (JSON Web Tokens) for authentication:
-
-1. User logs in with credentials
-2. Server returns a JWT token
-3. Client includes token in `Authorization: Bearer <token>` header for protected routes
-4. Server validates token and allows/denies access
-
-Protected routes require valid JWT tokens in the request header.
-
-## 🚦 Error Handling
-
-The application includes centralized error handling through the `errorMiddleware.js`. All errors are standardized using the `apiError.js` utility class.
-
-### Error Response Format
-```json
-{
-  "status": "error",
-  "statusCode": 400,
-  "message": "Error message",
-  "data": null
-}
+```sh
+npm start       # Start the API with Node
+npm run pro     # Start with NODE_ENV=production (uses Nodemon)
+npm test        # Run Jest in watch-all mode
 ```
 
-## 📧 Email Service
+## Tests
 
-Email notifications are sent via Nodemailer for:
-- OTP verification during registration
-- Order confirmations
-- Password reset links
-- Other transactional emails
+Run Jest once, or run one test file:
 
-Email templates are located in the `Views/` directory.
+```sh
+npx jest --runInBand
+npx jest --runInBand __test__/order.queue.service.test.js
+```
 
-## 🔄 Background Jobs
+To run an individual test by name, add `-t`:
 
-BullMQ job queue is used for:
-- Sending emails asynchronously
-- Processing long-running tasks
-- Scheduled operations via node-cron
+```sh
+npx jest --runInBand __test__/order.queue.service.test.js -t "cancels an eligible order"
+```
 
-Job workers are defined in `utils/workers.js`.
+The email delivery integration test sends real SMTP messages; configure and review its SMTP settings before running it. There are no build or lint scripts in `package.json`.
 
-## ⚙️ Configuration Files
+## Architecture
 
-- **database.js** - MongoDB connection configuration
-- **redis.config.js** - Redis client setup
-- **mainRoutes.js** - Central route aggregator
+- `src/app.js` configures Express middleware, JSON parsing, route registration, and centralized error handling. `src/config/mainRotes.js` mounts the API routers under `/api`.
+- Routers in `src/routes/` apply authentication, administrator authorization, and validators before dispatching to `src/controllers/`. Controllers delegate business operations to `src/services/`; Mongoose schemas are in `src/models/`.
+- Cart reads use Redis as a cache, with MongoDB as persistent storage. Cart changes publish RabbitMQ messages; the worker persists eligible updates using a synchronization token so an older queued update does not overwrite newer cart state.
+- Checkout selects a payment strategy through `src/payments/payment.factory.js`. Stripe webhooks are handled by `src/utils/stripe_utils/eventHandler.stripe.js`; the webhook route retains the raw request body for signature verification. Payment and order events are then processed asynchronously by RabbitMQ consumers.
+- RabbitMQ exchanges, queues, and bindings are declared in `src/rabbitmq/`. Consumer setup is in `src/consumers/setup.consumers.js`; the consumers handle order updates, inventory restoration, refunds, cart operations, and email delivery.
+- Transactional email HTML templates are in `src/Views/`. Email delivery and order notifications are implemented in `src/utils/sendEmails.js` and `src/utils/orderNotifications.js`.
 
-## 🤝 Contributing
+## API overview
 
-Contributions are welcome! Please follow these guidelines:
-1. Create a new branch for your feature
-2. Make your changes with clear commit messages
-3. Test thoroughly before submitting
-4. Submit a pull request with detailed description
+All routes are mounted under `/api`. Read the corresponding router in `src/routes/` for exact methods, validation rules, and access requirements.
 
-## 📝 License
+| Resource | Base path | Examples |
+| --- | --- | --- |
+| Users and authentication | `/api/users` | Signup, login, token generation, password recovery, and user administration. |
+| Products and variations | `/api/product` | Browse products; administrators manage products and variations. |
+| Categories | `/api/category` | Browse categories; administrators manage categories and subcategories. |
+| Brands | `/api/brand` | Browse brands; administrators manage the catalog. |
+| Cart | `/api/cart` | `/my-cart`, `/add-to-cart`, `/apply-coupon`, and `/address-shipping-cost` require authentication. |
+| Coupons | `/api/coupon` | Browse coupons; administrators create and manage them. |
+| Orders | `/api/order` | `/checkout`, customer order access, administrator order management, refunds, and subscriptions. |
+| Shipping costs | `/api/shipping-cost` | Administrator management of shipping-cost records. |
+| Plans | `/api/plans` | Plan and cost management, subscriptions, and customer payment methods. |
 
-This project is licensed under the ISC License - see the LICENSE file for details.
+Order checkout accepts `paymentprovider` in the request body or header (`cash` is the default). For Stripe checkout, `paymentmethod` selects `session` or `paymentintent`. Stripe sends payment events to `POST /api/order/webhook-completed`.
 
-## 👨‍💻 Author
+Protected routes use JWT authentication. The centralized error middleware formats application errors; inspect the route and validation definitions for request-specific behavior.
 
-Created as a full E-commerce system implementation using modern Node.js patterns and best practices.
+## Deployment
 
-## 📞 Support
+Docker files are under `docker/`; the GitHub Actions workflow in `.github/workflows/ci-cd.yml` builds and publishes the image and deploys it on pushes to `main`. Configure deployment secrets and environment variables for the external services before deploying.
 
-For issues, questions, or suggestions, please open an issue in the repository.
+## Contributing
 
----
+Create a branch for changes, test them before submitting, and include a clear description with pull requests.
 
-**Happy coding!** 🎉
+## License
+
+ISC

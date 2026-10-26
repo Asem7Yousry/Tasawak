@@ -11,29 +11,6 @@ const orderSchema = new mongoose.Schema(
       type: Object,
       required: true
     },
-    // items: [
-    //   {
-    //     productId: {
-    //       type: mongoose.Schema.ObjectId,
-    //       ref: "Product",
-    //       required: true,
-    //     },
-    //     variationId: {
-    //       type: mongoose.Schema.ObjectId,
-    //       ref: "productVariation",
-    //       required: true,
-    //     },
-    //     quantity: {
-    //       type: Number,
-    //       default: 1,
-    //     },
-    //     peacePrice: {
-    //       type: Number,
-    //       required: true,
-    //     },
-    //     _id: false,
-    //   },
-    // ],
     paymentProvider: {
       type: String,
       enum: ["cash", "stripe"],
@@ -43,7 +20,6 @@ const orderSchema = new mongoose.Schema(
     paymentId: String,
     paymentStatus: { type: String, enum: ["unpaid", "paid", "failed"], default: "unpaid" },
     currency: { type: String, default: "egp" },
-    notificationEvents: { type: [String], default: [] },
     paidAt: Date,
     isDelivered: {
       type: Boolean,
@@ -76,13 +52,41 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "shipping", "shipped", "delivered", "canceled"],
+      enum: ["pending", "shipping", "delivered", "canceled"],
       default: "pending",
     },
     canceledAt: Date,
-    // address: String,
+    address: {
+      type: Object,
+      required: true,
+    },
   },
   { timestamps: true, strict: false },
 );
 
 module.exports = mongoose.model("Order", orderSchema);
+
+
+// items: [
+//   {
+//     productId: {
+//       type: mongoose.Schema.ObjectId,
+//       ref: "Product",
+//       required: true,
+//     },
+//     variationId: {
+//       type: mongoose.Schema.ObjectId,
+//       ref: "productVariation",
+//       required: true,
+//     },
+//     quantity: {
+//       type: Number,
+//       default: 1,
+//     },
+//     peacePrice: {
+//       type: Number,
+//       required: true,
+//     },
+//     _id: false,
+//   },
+// ],
