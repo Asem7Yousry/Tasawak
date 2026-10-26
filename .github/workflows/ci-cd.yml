@@ -58,5 +58,5 @@ jobs:
             echo "Starting containers..."
             docker compose up -d
 
-            echo "delete unusedimages....."
+            echo "delete unused images....."
             docker image prune -f 

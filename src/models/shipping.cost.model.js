@@ -1,6 +1,4 @@
 const mongoose = require("mongoose");
-const ApiError = require("../utils/apiError");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const shippingRateSchema = new mongoose.Schema(
   {

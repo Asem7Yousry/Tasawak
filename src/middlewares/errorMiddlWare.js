@@ -1,4 +1,4 @@
-const errorHandellingMiddleWare = (error, request, response, next) => {
+const errorHandelingMiddleWare = (error, request, response, next) => {
   if (process.env.NODE_ENV === "development") {
     return erroHandelDev(error, response);
   } else {
@@ -19,4 +19,4 @@ const erroHandelDev = (error, response) => {
   });
 };
 
-module.exports = errorHandellingMiddleWare;
+module.exports = errorHandelingMiddleWare;

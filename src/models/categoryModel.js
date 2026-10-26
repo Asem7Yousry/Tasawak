@@ -8,20 +8,26 @@ const categorySchema = new mongoose.Schema(
       required: [true, "Title reuired"],
       minlength: [3, "Title mustn't be less than 3 letters"],
       maxlength: [15, "Title must be less than 16 letters"],
-      unique:true,
-      trim:true 
+      unique: true,
+      trim: true,
     },
     slug: {
       type: String,
       lowercase: true,
     },
+    parentCategoryId: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Category",
+      default: null,
+      index: true,
+    },
     imageUrl: String,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // create text index on title
-categorySchema.index({title:'text'})
+categorySchema.index({ title: "text" });
 
 // middle ware for saving and updating category object
 categorySchema.pre("findOneAndUpdate", function () {
@@ -32,7 +38,7 @@ categorySchema.pre("findOneAndUpdate", function () {
 });
 
 categorySchema.pre("save", function () {
-    this.slug = slugify(this.title);
+  this.slug = slugify(this.title);
 });
 
 const Category = mongoose.model("Category", categorySchema);

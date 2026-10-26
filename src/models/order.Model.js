@@ -7,29 +7,25 @@ const orderSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    cartItems: [
-      {
-        productId: {
-          type: mongoose.Schema.ObjectId,
-          ref: "Product",
-          required: true,
-        },
-        variationId: {
-          type: mongoose.Schema.ObjectId,
-          ref: "productVariation",
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          default: 1,
-        },
-        price: {
-          type: Number,
-          required: true,
-        },
-        _id: false,
-      },
-    ],
+    items: {
+      type: Object,
+      required: true
+    },
+    paymentProvider: {
+      type: String,
+      enum: ["cash", "stripe"],
+      default: "cash",
+    },
+    paymentMethod: String,
+    paymentId: String,
+    paymentStatus: { type: String, enum: ["unpaid", "paid", "failed"], default: "unpaid" },
+    currency: { type: String, default: "egp" },
+    paidAt: Date,
+    isDelivered: {
+      type: Boolean,
+      default: false,
+    },
+    deliveredAt: Date,
     taxPrice: {
       type: Number,
       default: 0,
@@ -38,46 +34,59 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    totalPrice: {
-      type: Number,
-      required: true,
-    },
-    paymentMethod: {
-      type: String,
-      enum: ["cach", "card"],
-      default: "cach",
-    },
-    paymentId: String,
-    isPaid: {
-      type: Boolean,
-      default: false,
-    },
-    paidAt: Date,
-    isDelivered: {
-      type: Boolean,
-      default: false,
-    },
-    deliveredAt: Date,
-    couponApplied: {
+    couponId: {
       type: mongoose.Schema.ObjectId,
       ref: "Coupon",
     },
-    couponDiscount: Number, // Original discount value from coupon
     discountType: {
       type: String,
       enum: ["fixed", "percentage"],
     },
+    couponDiscount: Number, // Original discount value from coupon
     discountAmount: Number, // Actual discount amount applied
     subtotal: Number, // Total before discount
     totalAfterDiscount: Number, // Total after discount but before tax/shipping
+    totalPrice: {
+      type: Number,
+      required: true,
+    },
     status: {
       type: String,
-      enum: ["pending", "shipping", "delivered", "cancelled"],
+      enum: ["pending", "shipping", "delivered", "canceled"],
       default: "pending",
     },
     canceledAt: Date,
+    address: {
+      type: Object,
+      required: true,
+    },
   },
   { timestamps: true, strict: false },
 );
 
 module.exports = mongoose.model("Order", orderSchema);
+
+
+// items: [
+//   {
+//     productId: {
+//       type: mongoose.Schema.ObjectId,
+//       ref: "Product",
+//       required: true,
+//     },
+//     variationId: {
+//       type: mongoose.Schema.ObjectId,
+//       ref: "productVariation",
+//       required: true,
+//     },
+//     quantity: {
+//       type: Number,
+//       default: 1,
+//     },
+//     peacePrice: {
+//       type: Number,
+//       required: true,
+//     },
+//     _id: false,
+//   },
+// ],
