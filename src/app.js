@@ -1,5 +1,3 @@
-require("dotenv").config();
-
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -8,6 +6,7 @@ const compression = require("compression");
 const ApiError = require("./utils/apiError");
 const errorHandelingMiddleWare = require("./middlewares/errorMiddlWare");
 const allRoutes = require("./config/mainRotes");
+require("dotenv").config();
 
 // initialize express object
 const app = express();
@@ -15,11 +14,12 @@ const app = express();
 // middleware configuration
 app.use(cors());
 app.use(compression());
+app.set("trust proxy", 1);
 app.use((req, res, next) => {
   if (req.originalUrl === "/api/order/webhook-completed") {
     next();
   } else {
-    express.json()(req, res, next);
+    express.json({ limit: '50kb' })(req, res, next);
   }
 });
 app.use(express.urlencoded({ extended: true }));
