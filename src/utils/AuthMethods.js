@@ -1,5 +1,6 @@
 const JWT = require("jsonwebtoken");
 const ApiError = require("./apiError");
+const { accountRateLimit } = require("./accountRateLimit");
 
 /// verify user authentication methods ///
 exports.verifyAuthentication = (req, res, next) => {
@@ -10,7 +11,7 @@ exports.verifyAuthentication = (req, res, next) => {
     }
     const token = bearerToken.split("Bearer ")[1];
     req.user = JWT.verify(token, process.env.SECRET_KEY);
-    next();
+    return accountRateLimit(req, res, next);
   } catch (err) {
     next(new ApiError(err.message, 401));
   }

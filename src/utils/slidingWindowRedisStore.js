@@ -18,7 +18,7 @@ if count >= limit then
 end
 
 redis.call('ZADD', key, now, member)
-redis.call('PEXPIRE', key, windowMs * 2)
+redis.call('PEXPIRE', key, windowMs)
 oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
 return {count + 1, tonumber(oldest[2]) + windowMs}
 `;

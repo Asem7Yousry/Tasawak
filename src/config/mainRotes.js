@@ -11,8 +11,8 @@ const plansRoutes = require("../routes/plan.routes");
 const limiter = require("../utils/rateLimitter");
 
 const allRoutes = (app) => {
-  app.use("/api/users", limiter(3, 5), userRout);
   app.use("/api", limiter());
+  app.use("/api/users", userRout);
   app.use("/api/category", categoryRout);
   app.use("/api/brand", brandRout);
   app.use("/api/product", productRout);
