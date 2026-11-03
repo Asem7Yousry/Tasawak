@@ -36,6 +36,7 @@ Create a `.env` file in the repository root and configure the variables your ena
 | --- | --- |
 | `PORT` | HTTP server port; defaults to `8000`. |
 | `NODE_ENV` | Set to `development` to enable Morgan request logging. |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins, including protocol and a non-default port when used (for example, `https://shop.example.com,http://localhost:5173`). Required for browser clients; credentials are enabled for cookie-based authentication. |
 | `DB_URI` | MongoDB connection URI. |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Redis connection settings. |
 | `RABBITMQ_URL` | AMQP connection URL. |

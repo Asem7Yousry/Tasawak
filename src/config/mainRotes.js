@@ -8,12 +8,14 @@ const couponRout = require("../routes/coupon.Routes");
 const orderRout = require("../routes/order.routes");
 const shippingCost = require("../routes/shipping.cost.Routes");
 const plansRoutes = require("../routes/plan.routes");
+const limiter = require("../utils/rateLimitter");
 
 const allRoutes = (app) => {
+  app.use("/api", limiter());
+  app.use("/api/users", userRout);
   app.use("/api/category", categoryRout);
   app.use("/api/brand", brandRout);
   app.use("/api/product", productRout);
-  app.use("/api/users", userRout);
   app.use("/api/cart", cartRout);
   app.use("/api/coupon", couponRout);
   app.use("/api/order", orderRout);

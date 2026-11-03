@@ -7,6 +7,7 @@ const userService = require("../services/user.service");
 const { getOtpEmailHtml } = require("../utils/generateOTP");
 const sendEmail = require("../utils/sendEmails");
 const { verifyRefreshToken } = require("../utils/AuthMethods");
+const { recordLoginFailure, clearLoginFailures } = require("../utils/accountRateLimit");
 
 // @doc signUp endpoint
 // @route post /api/users/signup
@@ -38,10 +39,12 @@ exports.signUp = asyncHandler(async (req, res, next) => {
 // @route post /api/users/logIn
 // @access public
 exports.logIn = asyncHandler(async (req, res, next) => {
-  let user = await User.findOne({ email: req.body.email }).select(
+  const loginEmail = req.body.email.trim();
+  let user = await User.findOne({ email: loginEmail }).select(
     "_id fullName password email phoneNumber role panned address subscription",
   );
   if (!user) {
+    await recordLoginFailure(loginEmail);
     return next(new ApiError(`email ${req.body["email"]} not exists`));
   }
   let isCorrectPassword = await bcrypt.compare(
@@ -49,8 +52,10 @@ exports.logIn = asyncHandler(async (req, res, next) => {
     user.password,
   );
   if (!isCorrectPassword) {
+    await recordLoginFailure(loginEmail);
     return next(new ApiError(`wrong password`));
   }
+  await clearLoginFailures(loginEmail);
   let { accessToken, refreshToken } = await jwtCreator(user);
   res
     .status(200)
